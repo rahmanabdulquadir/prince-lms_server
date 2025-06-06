@@ -8,6 +8,8 @@ import { LoginDto } from './dto/login.dto';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from './prisma/prisma.service';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 
 @Injectable()
 export class AuthService {
@@ -60,4 +62,39 @@ export class AuthService {
       accessToken,
     };
   }
+
+  async forgotPassword(dto: ForgotPasswordDto) {
+    const user = await this.prisma.user.findUnique({
+      where: { email: dto.email },
+    });
+  
+    if (!user) {
+      throw new BadRequestException('User with this email does not exist');
+    }
+  
+    // In real-world: Send a reset token via email. For now, confirm email exists.
+    return { message: 'User found. You can now reset your password.' };
+  }
+  
+  async resetPassword(dto: ResetPasswordDto) {
+    const user = await this.prisma.user.findUnique({
+      where: { email: dto.email },
+    });
+  
+    if (!user) {
+      throw new BadRequestException('Invalid email');
+    }
+  
+    const hashedPassword = await bcrypt.hash(dto.newPassword, 10);
+  
+    await this.prisma.user.update({
+      where: { email: dto.email },
+      data: { password: hashedPassword },
+    });
+  
+    return { message: 'Password updated successfully' };
+  }
+  
 }
+
+

@@ -1,9 +1,11 @@
 import { Module } from '@nestjs/common';
-import { QuoteController } from './quote.controller';
 import { QuoteService } from './quote.service';
+import { QuoteController } from './quote.controller';
+import { PrismaModule } from '../prisma/prisma.module';
 
 @Module({
+  imports: [PrismaModule],
   controllers: [QuoteController],
-  providers: [QuoteService]
+  providers: [QuoteService],
 })
 export class QuoteModule {}

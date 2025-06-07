@@ -12,6 +12,7 @@ import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import * as crypto from 'crypto';
 import { MailService } from '../mail/mail.service';
+import { ChangePasswordDto } from './dto/change-password.dto';
 
 @Injectable()
 export class AuthService {
@@ -121,4 +122,25 @@ export class AuthService {
 
     return { message: 'Password reset successfully' };
   }
+
+  async changePassword(userId: string, dto: ChangePasswordDto) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+  
+    if (!user) throw new BadRequestException('User not found');
+  
+    const isMatch = await bcrypt.compare(dto.currentPassword, user.password);
+    if (!isMatch) throw new BadRequestException('Current password is incorrect');
+  
+    const hashedNewPassword = await bcrypt.hash(dto.newPassword, 10);
+  
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { password: hashedNewPassword },
+    });
+  
+    return { message: 'Password changed successfully' };
+  }
+  
 }

@@ -10,12 +10,15 @@ import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from './prisma/prisma.service';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import * as crypto from 'crypto';
+import { MailService } from '../mail/mail.service';
 
 @Injectable()
 export class AuthService {
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
+    private mailService: MailService
   ) {}
 
   async register(dto: RegisterDto) {
@@ -54,9 +57,7 @@ export class AuthService {
     const payload = { sub: user.id, email: user.email };
     const accessToken = await this.jwtService.signAsync(payload);
 
-    // Remove sensitive fields before returning
     const { password, ...userWithoutPassword } = user;
-
     return {
       user: userWithoutPassword,
       accessToken,
@@ -67,34 +68,57 @@ export class AuthService {
     const user = await this.prisma.user.findUnique({
       where: { email: dto.email },
     });
-  
-    if (!user) {
-      throw new BadRequestException('User with this email does not exist');
-    }
-  
-    // In real-world: Send a reset token via email. For now, confirm email exists.
-    return { message: 'User found. You can now reset your password.' };
-  }
-  
-  async resetPassword(dto: ResetPasswordDto) {
-    const user = await this.prisma.user.findUnique({
-      where: { email: dto.email },
-    });
-  
-    if (!user) {
-      throw new BadRequestException('Invalid email');
-    }
-  
-    const hashedPassword = await bcrypt.hash(dto.newPassword, 10);
-  
+
+    if (!user) throw new BadRequestException('User not found');
+
+    const token = crypto.randomBytes(32).toString('hex');
+    const hashed = await bcrypt.hash(token, 10);
+
     await this.prisma.user.update({
       where: { email: dto.email },
-      data: { password: hashedPassword },
+      data: {
+        resetToken: hashed,
+        resetTokenExpiry: new Date(Date.now() + 1000 * 60 * 15),
+      },
     });
-  
-    return { message: 'Password updated successfully' };
+
+    await this.mailService.sendResetPasswordEmail(dto.email, token);
+    return { message: 'Reset email sent' };
   }
-  
+
+  async resetPassword(dto: ResetPasswordDto) {
+    const users = await this.prisma.user.findMany({
+      where: {
+        resetToken: {
+          not: null,
+        },
+        resetTokenExpiry: {
+          gte: new Date(),
+        },
+      },
+    });
+
+    const matchedUser = await Promise.any(
+      users.map(async (user) => {
+        const isValid = await bcrypt.compare(dto.token, user.resetToken as string);
+        if (isValid) return user;
+        throw new Error();
+      }),
+    ).catch(() => null);
+
+    if (!matchedUser) throw new BadRequestException('Invalid or expired token');
+
+    const hashedPassword = await bcrypt.hash(dto.newPassword, 10);
+
+    await this.prisma.user.update({
+      where: { id: matchedUser.id },
+      data: {
+        password: hashedPassword,
+        resetToken: null,
+        resetTokenExpiry: null,
+      },
+    });
+
+    return { message: 'Password reset successfully' };
+  }
 }
-
-

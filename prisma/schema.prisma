@@ -26,6 +26,37 @@ model User {
   updatedAt   DateTime @updatedAt
 }
 
+model Course {
+  id          String    @id @default(uuid())
+  title       String
+  description String
+  thumbnail   String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  modules     Module[]
+}
+
+model Module {
+  id        String   @id @default(uuid())
+  title     String
+  courseId  String
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  videos    Video[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Video {
+  id        String   @id @default(uuid())
+  title     String
+  url       String
+  duration  Int      // Duration in seconds
+  moduleId  String
+  module    Module   @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 model Contact {
   id       String   @id @default(uuid())
   name     String

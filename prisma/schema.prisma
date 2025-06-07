@@ -4,7 +4,6 @@
 // Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -15,53 +14,57 @@ datasource db {
 }
 
 model User {
-  id          String   @id @default(uuid())
-  fullName    String
-  email       String   @unique
-  phoneNumber String   @unique
-  password    String
-  resetToken        String? 
-  resetTokenExpiry  DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id               String    @id @default(uuid())
+  fullName         String
+  email            String    @unique
+  phoneNumber      String    @unique
+  password         String
+  resetToken       String?
+  resetTokenExpiry DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 }
 
 model Course {
-  id          String    @id @default(uuid())
+  id          String   @id @default(uuid())
   title       String
   description String
   thumbnail   String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  category    String
+  isPaid      Boolean
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
   modules     Module[]
 }
 
 model Module {
-  id        String   @id @default(uuid())
-  title     String
-  courseId  String
-  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  videos    Video[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String   @id @default(uuid())
+  title       String
+  description String
+  courseId    String
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  videos      Video[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model Video {
   id        String   @id @default(uuid())
   title     String
   url       String
-  duration  Int      // Duration in seconds
+  duration  Int // Duration in seconds
   moduleId  String
+  tags      String
   module    Module   @relation(fields: [moduleId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 model Contact {
-  id       String   @id @default(uuid())
-  name     String
-  email    String
-  opinion  String
+  id        String   @id @default(uuid())
+  name      String
+  email     String
+  opinion   String
   createdAt DateTime @default(now())
 }
 

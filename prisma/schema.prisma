@@ -33,3 +33,10 @@ model Contact {
   opinion  String
   createdAt DateTime @default(now())
 }
+
+model Quote {
+  id        String   @id @default(uuid())
+  quote     String
+  author    String
+  createdAt DateTime @default(now())
+}

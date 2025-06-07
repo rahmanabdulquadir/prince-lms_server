@@ -26,3 +26,10 @@ model User {
   updatedAt   DateTime @updatedAt
 }
 
+model Contact {
+  id       String   @id @default(uuid())
+  name     String
+  email    String
+  opinion  String
+  createdAt DateTime @default(now())
+}

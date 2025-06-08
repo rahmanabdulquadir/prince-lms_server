@@ -32,7 +32,6 @@ import { ProgressModule } from './main/progress/progress.module';
   ],
   controllers: [
     AppController,
-    ProgressController,
     // CourseController,
     // ModuleController,
     // ContentController,

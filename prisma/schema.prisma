@@ -72,6 +72,7 @@ model Progress {
   user        User     @relation(fields: [userId], references: [id])
   course      Course   @relation(fields: [courseId], references: [id])
   content     Content? @relation(fields: [contentId], references: [id])
+  @@unique([userId, contentId]) // One progress per user per content
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

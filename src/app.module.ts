@@ -16,6 +16,8 @@ import { ContentModule } from './main/content/content.module';
 import { CourseModule } from './main/course/course.module';
 import { CourseService } from './main/course/course.service';
 import { ContentService } from './main/content/content.service';
+import { ProgressController } from './main/progress/progress.controller';
+import { ProgressModule } from './main/progress/progress.module';
 
 @Module({
   imports: [
@@ -26,9 +28,11 @@ import { ContentService } from './main/content/content.service';
     CourseModule,
     ModuleModule,
     ContentModule,
+    ProgressModule,
   ],
   controllers: [
     AppController,
+    ProgressController,
     // CourseController,
     // ModuleController,
     // ContentController,

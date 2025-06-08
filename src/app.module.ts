@@ -8,16 +8,38 @@ import { MailService } from './main/mail/mail.service';
 import { ContactModule } from './main/contact/contact.module';
 import { QuoteModule } from './main/quote/quote.module';
 import { CourseController } from './main/course/course.controller';
-import { CourseModule } from './main/course/course.module';
 import { ModuleService } from './main/module/module.service';
 import { ModuleController } from './main/module/module.controller';
 import { ModuleModule } from './main/module/module.module';
 import { ContentController } from './main/content/content.controller';
 import { ContentModule } from './main/content/content.module';
+import { CourseModule } from './main/course/course.module';
+import { CourseService } from './main/course/course.service';
+import { ContentService } from './main/content/content.service';
 
 @Module({
-  imports: [PrismaModule, AuthModule, ContactModule, QuoteModule, CourseModule, ModuleModule, ContentModule],
-  controllers: [AppController, CourseController, ModuleController, ContentController],
-  providers: [AppService, PrismaService, MailService, ModuleService],
+  imports: [
+    PrismaModule,
+    AuthModule,
+    ContactModule,
+    QuoteModule,
+    CourseModule,
+    ModuleModule,
+    ContentModule,
+  ],
+  controllers: [
+    AppController,
+    // CourseController,
+    ModuleController,
+    ContentController,
+  ],
+  providers: [
+    AppService,
+    PrismaService,
+    MailService,
+    ModuleService,
+    // CourseService,
+    ContentService,
+  ],
 })
 export class AppModule {}

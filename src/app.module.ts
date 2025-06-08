@@ -10,10 +10,14 @@ import { QuoteModule } from './main/quote/quote.module';
 import { CourseController } from './main/course/course.controller';
 import { CourseModule } from './main/course/course.module';
 import { ModuleService } from './main/module/module.service';
+import { ModuleController } from './main/module/module.controller';
+import { ModuleModule } from './main/module/module.module';
+import { ContentController } from './main/content/content.controller';
+import { ContentModule } from './main/content/content.module';
 
 @Module({
-  imports: [PrismaModule, AuthModule, ContactModule, QuoteModule, CourseModule],
-  controllers: [AppController, CourseController],
+  imports: [PrismaModule, AuthModule, ContactModule, QuoteModule, CourseModule, ModuleModule, ContentModule],
+  controllers: [AppController, CourseController, ModuleController, ContentController],
   providers: [AppService, PrismaService, MailService, ModuleService],
 })
 export class AppModule {}

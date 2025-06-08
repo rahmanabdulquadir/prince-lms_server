@@ -14,27 +14,30 @@ datasource db {
 }
 
 model User {
-  id               String    @id @default(uuid())
+  id               String         @id @default(uuid())
   fullName         String
-  email            String    @unique
-  phoneNumber      String    @unique
+  email            String         @unique
+  phoneNumber      String         @unique
   password         String
   resetToken       String?
   resetTokenExpiry DateTime?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  subscriptions    Subscription[]
+  progresses       Progress[]
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
 }
 
 model Course {
-  id          String   @id @default(uuid())
+  id          String     @id @default(uuid())
   title       String
   description String
   thumbnail   String?
-  category    String
-  isPaid      Boolean
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  category    String[]
   modules     Module[]
+  progresses  Progress[]
+  isPaid      Boolean
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
 }
 
 model Module {
@@ -49,15 +52,71 @@ model Module {
 }
 
 model Video {
-  id        String   @id @default(uuid())
-  title     String
-  url       String
-  duration  Int // Duration in seconds
-  moduleId  String
-  tags      String
-  module    Module   @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  id         String     @id @default(uuid())
+  title      String
+  url        String
+  duration   Int
+  tags       String[]
+  moduleId   String
+  module     Module     @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  progresses Progress[]
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+}
+
+model Progress {
+  id         String  @id @default(uuid())
+  percentage Int     @default(0)
+  userId     String
+  courseId   String
+  videoId    String?
+
+  user   User   @relation(fields: [userId], references: [id])
+  course Course @relation(fields: [courseId], references: [id])
+  video  Video? @relation(fields: [videoId], references: [id])
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Plan {
+  id            String         @id @default(uuid())
+  name          String         @unique
+  description   String?
+  price         Float
+  features      String[]
+  planType      PlanType
+  status        PlanStatus     @default(ACTIVE)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  subscriptions Subscription[]
+}
+
+model Subscription {
+  id        String   @id @default(uuid())
+  userId    String
+  planId    String
+  startDate DateTime @default(now())
+  endDate   DateTime
+
+  user     User      @relation(fields: [userId], references: [id])
+  plan     Plan      @relation(fields: [planId], references: [id])
+  payments Payment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Payment {
+  id             String @id @default(uuid())
+  amount         Float
+  currency       String @default("USD")
+  status         String // e.g., "pending", "completed"
+  transactionId  String @unique
+  subscriptionId String
+
+  subscription Subscription @relation(fields: [subscriptionId], references: [id])
+  createdAt    DateTime     @default(now())
 }
 
 model Contact {
@@ -73,4 +132,16 @@ model Quote {
   quote     String
   author    String
   createdAt DateTime @default(now())
+}
+
+enum PlanStatus {
+  ACTIVE
+  INACTIVE
+  // CANCELLED
+  // EXPIRED
+}
+
+enum PlanType {
+  MONTHLY
+  YEARLY
 }

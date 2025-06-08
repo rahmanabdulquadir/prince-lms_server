@@ -9,10 +9,11 @@ import { ContactModule } from './main/contact/contact.module';
 import { QuoteModule } from './main/quote/quote.module';
 import { CourseController } from './main/course/course.controller';
 import { CourseModule } from './main/course/course.module';
+import { ModuleService } from './main/module/module.service';
 
 @Module({
   imports: [PrismaModule, AuthModule, ContactModule, QuoteModule, CourseModule],
   controllers: [AppController, CourseController],
-  providers: [AppService, PrismaService, MailService],
+  providers: [AppService, PrismaService, MailService, ModuleService],
 })
 export class AppModule {}

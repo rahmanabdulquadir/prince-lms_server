@@ -30,16 +30,16 @@ import { ContentService } from './main/content/content.service';
   controllers: [
     AppController,
     // CourseController,
-    ModuleController,
-    ContentController,
+    // ModuleController,
+    // ContentController,
   ],
   providers: [
     AppService,
     PrismaService,
     MailService,
-    ModuleService,
+    // ModuleService,
     // CourseService,
-    ContentService,
+    // ContentService,
   ],
 })
 export class AppModule {}

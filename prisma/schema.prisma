@@ -70,10 +70,9 @@ model Progress {
   userId     String
   courseId   String
   videoId    String?
-
-  user   User   @relation(fields: [userId], references: [id])
-  course Course @relation(fields: [courseId], references: [id])
-  video  Video? @relation(fields: [videoId], references: [id])
+  user       User    @relation(fields: [userId], references: [id])
+  course     Course  @relation(fields: [courseId], references: [id])
+  video      Video?  @relation(fields: [videoId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -108,11 +107,11 @@ model Subscription {
 }
 
 model Payment {
-  id             String @id @default(uuid())
+  id             String        @id @default(uuid())
   amount         Float
-  currency       String @default("USD")
-  status         String // e.g., "pending", "completed"
-  transactionId  String @unique
+  currency       String        @default("USD")
+  status         PaymentStatus
+  transactionId  String        @unique
   subscriptionId String
 
   subscription Subscription @relation(fields: [subscriptionId], references: [id])
@@ -144,4 +143,16 @@ enum PlanStatus {
 enum PlanType {
   MONTHLY
   YEARLY
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  CANCELLED
+}
+
+enum Role {
+  ADMIN
+  USER
 }

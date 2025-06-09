@@ -20,6 +20,7 @@ model User {
   resetTokenExpiry DateTime?
   subscriptions    Subscription[]
   progresses       Progress[]
+  isSubscribed     Boolean?       @default(false)
   role             Role           @default(USER)
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
@@ -72,10 +73,11 @@ model Progress {
   user        User     @relation(fields: [userId], references: [id])
   course      Course   @relation(fields: [courseId], references: [id])
   content     Content? @relation(fields: [contentId], references: [id])
-  @@unique([userId, contentId]) // One progress per user per content
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@unique([userId, contentId]) // One progress per user per content
 }
 
 model Plan {
@@ -134,41 +136,41 @@ model Quote {
 }
 
 model FAQCategory {
-  id       String   @id @default(uuid())
-  name     String   @unique
-  faqs     FAQ[]
+  id        String   @id @default(uuid())
+  name      String   @unique
+  faqs      FAQ[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 model FAQ {
-  id          String       @id @default(uuid())
-  question    String
-  answer      String
-  categoryId  String
-  category    FAQCategory  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  id         String      @id @default(uuid())
+  question   String
+  answer     String
+  categoryId String
+  category   FAQCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
 }
 
 model TermsCategory {
-  id          String      @id @default(uuid())
+  id          String     @id @default(uuid())
   title       String
-  lastUpdated DateTime    @default(now())
+  lastUpdated DateTime   @default(now())
   keyPoints   KeyPoint[]
 
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model KeyPoint {
-  id              String        @id @default(uuid())
-  point           String
-  categoryId      String
-  category        TermsCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  id         String        @id @default(uuid())
+  point      String
+  categoryId String
+  category   TermsCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
 
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 enum PlanStatus {

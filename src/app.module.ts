@@ -21,6 +21,8 @@ import { ProgressModule } from './main/progress/progress.module';
 import { FAQModule } from './main/faq/faq.module';
 import { TermsModule } from './main/terms/terms.module';
 import { PlanModule } from './main/plan/plan.module';
+import { SubscriptionController } from './main/subscription/subscription.controller';
+import { SubscriptionModule } from './main/subscription/subscription.module';
 
 @Module({
   imports: [
@@ -35,9 +37,11 @@ import { PlanModule } from './main/plan/plan.module';
     FAQModule,
     TermsModule,
     PlanModule,
+    SubscriptionModule,
   ],
   controllers: [
     AppController,
+    // SubscriptionController,
     // CourseController,
     // ModuleController,
     // ContentController,

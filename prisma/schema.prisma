@@ -26,7 +26,19 @@ model User {
   updatedAt        DateTime       @updatedAt
 
   FavoriteContents FavoriteContent[]
-  SavedQuotes SavedQuote[]
+  SavedQuotes      SavedQuote[]
+  Profile          Profile?
+}
+
+model Profile {
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  photo String? // Optional profile picture
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Course {
@@ -97,12 +109,12 @@ model FavoriteContent {
 }
 
 model SavedQuote {
-  id       String   @id @default(uuid())
-  userId   String
-  quoteId  String
-  user     User     @relation(fields: [userId], references: [id])
-  quote    Quote    @relation(fields: [quoteId], references: [id])
-  savedAt  DateTime @default(now())
+  id      String   @id @default(uuid())
+  userId  String
+  quoteId String
+  user    User     @relation(fields: [userId], references: [id])
+  quote   Quote    @relation(fields: [quoteId], references: [id])
+  savedAt DateTime @default(now())
 
   @@unique([userId, quoteId])
 }
@@ -156,10 +168,10 @@ model Contact {
 }
 
 model Quote {
-  id        String   @id @default(uuid())
-  quote     String
-  author    String
-  createdAt DateTime @default(now())
+  id         String       @id @default(uuid())
+  quote      String
+  author     String
+  createdAt  DateTime     @default(now())
   SavedQuote SavedQuote[]
 }
 

@@ -19,6 +19,7 @@ import { ContentService } from './main/content/content.service';
 import { ProgressController } from './main/progress/progress.controller';
 import { ProgressModule } from './main/progress/progress.module';
 import { FAQModule } from './main/faq/faq.module';
+import { TermsModule } from './main/terms/terms.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { FAQModule } from './main/faq/faq.module';
     ContentModule,
     ProgressModule,
     FAQModule,
+    TermsModule,
   ],
   controllers: [
     AppController,

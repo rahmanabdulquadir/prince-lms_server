@@ -133,6 +133,24 @@ model Quote {
   createdAt DateTime @default(now())
 }
 
+model FAQCategory {
+  id       String   @id @default(uuid())
+  name     String   @unique
+  faqs     FAQ[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model FAQ {
+  id          String       @id @default(uuid())
+  question    String
+  answer      String
+  categoryId  String
+  category    FAQCategory  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
 enum PlanStatus {
   ACTIVE
   INACTIVE

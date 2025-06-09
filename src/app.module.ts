@@ -18,6 +18,7 @@ import { CourseService } from './main/course/course.service';
 import { ContentService } from './main/content/content.service';
 import { ProgressController } from './main/progress/progress.controller';
 import { ProgressModule } from './main/progress/progress.module';
+import { FaqModule } from './main/faq/faq.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { ProgressModule } from './main/progress/progress.module';
     ModuleModule,
     ContentModule,
     ProgressModule,
+    FaqModule,
   ],
   controllers: [
     AppController,

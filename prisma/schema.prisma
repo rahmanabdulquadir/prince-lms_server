@@ -24,6 +24,9 @@ model User {
   role             Role           @default(USER)
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
+
+  FavoriteContents FavoriteContent[]
+  SavedQuotes SavedQuote[]
 }
 
 model Course {
@@ -61,6 +64,8 @@ model Content {
   progresses Progress[]
   createdAt  DateTime   @default(now())
   updatedAt  DateTime   @updatedAt
+
+  favoriteByUsers FavoriteContent[]
 }
 
 model Progress {
@@ -78,6 +83,28 @@ model Progress {
   updatedAt DateTime @updatedAt
 
   @@unique([userId, contentId]) // One progress per user per content
+}
+
+model FavoriteContent {
+  id        String   @id @default(uuid())
+  userId    String
+  contentId String
+  user      User     @relation(fields: [userId], references: [id])
+  content   Content  @relation(fields: [contentId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@unique([userId, contentId])
+}
+
+model SavedQuote {
+  id       String   @id @default(uuid())
+  userId   String
+  quoteId  String
+  user     User     @relation(fields: [userId], references: [id])
+  quote    Quote    @relation(fields: [quoteId], references: [id])
+  savedAt  DateTime @default(now())
+
+  @@unique([userId, quoteId])
 }
 
 model Plan {
@@ -133,6 +160,7 @@ model Quote {
   quote     String
   author    String
   createdAt DateTime @default(now())
+  SavedQuote SavedQuote[]
 }
 
 model FAQCategory {

@@ -1,4 +1,13 @@
-import { Controller, Post, Body, Req, Res, Get, Query, Headers } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Req,
+  Res,
+  Get,
+  Query,
+  Headers,
+} from '@nestjs/common';
 import { SubscriptionService } from './subscription.service';
 import { CreateSubscriptionDto } from './dto/create-subscription.dto';
 import { Request } from 'express';
@@ -17,7 +26,13 @@ export class SubscriptionController {
   }
 
   @Post('webhook')
-  async webhook(@Req() req: RawBodyRequest, @Res() res, @Headers('stripe-signature') sig: string) {
+  async webhook(
+    @Req() req: RawBodyRequest,
+    @Res() res,
+    @Headers('stripe-signature') sig: string,
+  ) {
+    console.log('Stripe signature header:', sig);
+    console.log('Raw body length:', req.rawBody?.length);
     try {
       await this.svc.handleWebhook(req.rawBody, sig);
       res.json({ received: true });

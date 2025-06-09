@@ -151,6 +151,26 @@ model FAQ {
   updatedAt   DateTime     @updatedAt
 }
 
+model TermsCategory {
+  id          String      @id @default(uuid())
+  title       String
+  lastUpdated DateTime    @default(now())
+  keyPoints   KeyPoint[]
+
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+model KeyPoint {
+  id              String        @id @default(uuid())
+  point           String
+  categoryId      String
+  category        TermsCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+}
+
 enum PlanStatus {
   ACTIVE
   INACTIVE

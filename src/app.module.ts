@@ -20,6 +20,7 @@ import { ProgressController } from './main/progress/progress.controller';
 import { ProgressModule } from './main/progress/progress.module';
 import { FAQModule } from './main/faq/faq.module';
 import { TermsModule } from './main/terms/terms.module';
+import { PlanModule } from './main/plan/plan.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { TermsModule } from './main/terms/terms.module';
     ProgressModule,
     FAQModule,
     TermsModule,
+    PlanModule,
   ],
   controllers: [
     AppController,

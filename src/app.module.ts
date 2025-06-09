@@ -23,6 +23,7 @@ import { TermsModule } from './main/terms/terms.module';
 import { PlanModule } from './main/plan/plan.module';
 import { SubscriptionController } from './main/subscription/subscription.controller';
 import { SubscriptionModule } from './main/subscription/subscription.module';
+import { ProfileModule } from './main/profile/profile.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { SubscriptionModule } from './main/subscription/subscription.module';
     TermsModule,
     PlanModule,
     SubscriptionModule,
+    ProfileModule,
   ],
   controllers: [
     AppController,

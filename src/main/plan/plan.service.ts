@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreatePlanDto } from './dto/create-plan.dto';
 import { UpdatePlanDto } from './dto/update-plan.dto';
@@ -19,8 +19,29 @@ export class PlanService {
     return this.prisma.plan.findUnique({ where: { id } });
   }
 
-  update(id: string, data: UpdatePlanDto) {
-    return this.prisma.plan.update({ where: { id }, data });
+  async update(id: string, dto: UpdatePlanDto) {
+    // Fetch current plan
+    const existingPlan = await this.prisma.plan.findUnique({ where: { id } });
+  
+    if (!existingPlan) {
+      throw new NotFoundException('Plan not found');
+    }
+  
+    // Merge features if provided
+    let updatedFeatures = existingPlan.features;
+    if (dto.features && dto.features.length > 0) {
+      const existingSet = new Set(existingPlan.features);
+      dto.features.forEach(feature => existingSet.add(feature));
+      updatedFeatures = Array.from(existingSet);
+    }
+  
+    return this.prisma.plan.update({
+      where: { id },
+      data: {
+        ...dto,
+        features: updatedFeatures,
+      },
+    });
   }
 
   remove(id: string) {

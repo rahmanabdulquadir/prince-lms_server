@@ -34,3 +34,20 @@ export class RegisterDto {
   @MinLength(6)
   password: string;
 }
+
+
+export class SendOtpDto {
+  @ApiProperty()
+  userId: string;
+
+  @ApiProperty({ enum: ['email', 'phone'] })
+  method: 'email' | 'phone';
+}
+
+export class VerifyOtpDto {
+  @ApiProperty()
+  userId: string;
+
+  @ApiProperty()
+  otp: string;
+}

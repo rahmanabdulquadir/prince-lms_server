@@ -41,15 +41,6 @@ export class AuthService {
         },
       }),
     ]);
-  
-    // Create profile after user is created
-    await this.prisma.profile.create({
-      data: {
-        userId: user.id,
-        photo: null, // optional, or use a default placeholder
-      },
-    });
-  
     return this.signToken(user);
   }
   

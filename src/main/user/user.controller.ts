@@ -13,7 +13,9 @@ export class UserController {
   constructor(private readonly userService: UserService) {}
 
   @Get('me')
+  @UseGuards(JwtAuthGuard)
   getMe(@CurrentUser('id') userId: string) {
+    console.log('userId from CurrentUser:', userId);
     return this.userService.getMe(userId);
   }
 

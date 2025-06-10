@@ -28,6 +28,11 @@ model User {
 
   FavoriteContents FavoriteContent[]
   SavedQuotes      SavedQuote[]
+
+  isVerified       Boolean  @default(false)
+  otp              String?  // Store the latest OTP temporarily
+  otpExpiresAt     DateTime? // OTP expiration time
+  otpType          String?  // 'EMAIL' or 'PHONE'
   // Profile          Profile?
 }
 

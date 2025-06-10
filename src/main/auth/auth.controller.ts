@@ -44,4 +44,6 @@ export class AuthController {
     // ✅ Use `sub` instead of `id`
     return this.authService.changePassword(req.user.sub, dto);
   }
+
+  
 }

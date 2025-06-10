@@ -13,13 +13,16 @@ import { ResetPasswordDto } from './dto/reset-password.dto';
 import * as crypto from 'crypto';
 import { MailService } from '../mail/mail.service';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { randomUUID } from 'crypto';
+import { OtpService } from './services/otp.service';
 
 @Injectable()
 export class AuthService {
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
-    private mailService: MailService
+    private mailService: MailService,
+    private otpService: OtpService
   ) {}
 
   async register(dto: RegisterDto) {
@@ -146,4 +149,67 @@ export class AuthService {
     return { message: 'Password changed successfully' };
   }
   
+
+   // Called after registration to start OTP verification
+   async sendOtp(userId: string, method: 'email' | 'phone') {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new BadRequestException('User not found');
+
+    const otp = this.otpService.generateOtp();
+
+    await this.prisma.otpVerification.create({
+      data: {
+        id: randomUUID(),
+        otp,
+        userId,
+        method,
+        expiresAt: new Date(Date.now() + 1000 * 60 * 5), // 5 min expiry
+      },
+    });
+
+    if (method === 'email') {
+      await this.otpService.sendOtpByEmail(user.email, otp);
+    } else {
+      await this.otpService.sendOtpByPhone(user.phoneNumber, otp);
+    }
+
+    return { message: 'OTP sent successfully' };
+  }
+
+  async verifyOtp(userId: string, otp: string) {
+    const record = await this.prisma.otpVerification.findFirst({
+      where: {
+        userId,
+        otp,
+        expiresAt: { gte: new Date() },
+        verifiedAt: null,
+      },
+    });
+
+    if (!record) throw new BadRequestException('Invalid or expired OTP');
+
+    await this.prisma.otpVerification.update({
+      where: { id: record.id },
+      data: { verifiedAt: new Date() },
+    });
+
+    return { message: 'OTP verified successfully' };
+  }
+
+  async resendOtp(userId: string, method: 'email' | 'phone') {
+    // Optional: Enforce 60-second delay
+    const lastOtp = await this.prisma.otpVerification.findFirst({
+      where: {
+        userId,
+        method,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (lastOtp && Date.now() - new Date(lastOtp.createdAt).getTime() < 60000) {
+      throw new BadRequestException('Please wait before resending OTP');
+    }
+
+    return this.sendOtp(userId, method);
+  }
 }

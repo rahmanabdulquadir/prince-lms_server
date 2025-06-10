@@ -34,6 +34,19 @@ model User {
   otpExpiresAt     DateTime? // OTP expiration time
   otpType          String?  // 'EMAIL' or 'PHONE'
   // Profile          Profile?
+
+  OtpVerification OtpVerification[]
+}
+
+model OtpVerification {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  otp        String
+  method     String
+  expiresAt  DateTime
+  verifiedAt DateTime?
+  createdAt  DateTime @default(now())
 }
 
 // model Profile {

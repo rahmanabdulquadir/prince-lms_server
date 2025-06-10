@@ -37,13 +37,26 @@ export class AuthController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @Patch('change-password')
-  changePassword(
-    @Req() req,
-    @Body() dto: ChangePasswordDto,
-  ) {
+  changePassword(@Req() req, @Body() dto: ChangePasswordDto) {
     // ✅ Use `sub` instead of `id`
     return this.authService.changePassword(req.user.sub, dto);
   }
 
-  
+  @Post('send-otp')
+  @ApiOperation({ summary: 'Send OTP via email or phone' })
+  sendOtp(@Body() body: { userId: string; method: 'email' | 'phone' }) {
+    return this.authService.sendOtp(body.userId, body.method);
+  }
+
+  @Post('verify-otp')
+  @ApiOperation({ summary: 'Verify user OTP' })
+  verifyOtp(@Body() body: { userId: string; otp: string }) {
+    return this.authService.verifyOtp(body.userId, body.otp);
+  }
+
+  @Post('resend-otp')
+  @ApiOperation({ summary: 'Resend OTP (after 60s)' })
+  resendOtp(@Body() body: { userId: string; method: 'email' | 'phone' }) {
+    return this.authService.resendOtp(body.userId, body.method);
+  }
 }

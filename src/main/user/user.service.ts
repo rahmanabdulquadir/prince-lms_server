@@ -15,8 +15,13 @@ export class UserService {
         fullName: true,
         email: true,
         phoneNumber: true,
+        photo: true,
         role: true,
         isSubscribed: true,
+        progresses: true,
+        subscriptions: true,
+        FavoriteContents: true,
+        SavedQuotes: true,
         createdAt: true,
         updatedAt: true,
         // add relations if needed

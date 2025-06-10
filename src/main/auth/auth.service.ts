@@ -27,20 +27,32 @@ export class AuthService {
       where: { email: dto.email },
     });
     if (userExists) throw new BadRequestException('Email already in use');
-
+  
     const hash = await bcrypt.hash(dto.password, 10);
-
-    const user = await this.prisma.user.create({
+  
+    // Use a transaction to ensure atomicity
+    const [user] = await this.prisma.$transaction([
+      this.prisma.user.create({
+        data: {
+          fullName: dto.fullName,
+          email: dto.email,
+          phoneNumber: dto.phoneNumber,
+          password: hash,
+        },
+      }),
+    ]);
+  
+    // Create profile after user is created
+    await this.prisma.profile.create({
       data: {
-        fullName: dto.fullName,
-        email: dto.email,
-        phoneNumber: dto.phoneNumber,
-        password: hash,
+        userId: user.id,
+        photo: null, // optional, or use a default placeholder
       },
     });
-
+  
     return this.signToken(user);
   }
+  
 
   async login(dto: LoginDto) {
     const user = await this.prisma.user.findUnique({

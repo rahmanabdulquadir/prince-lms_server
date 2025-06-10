@@ -1,4 +1,8 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateSubscriptionDto } from './dto/create-subscription.dto';
 import Stripe from 'stripe';
@@ -20,20 +24,24 @@ export class SubscriptionService {
   }
 
   async createCheckoutSession(dto: CreateSubscriptionDto) {
-    const plan = await this.prisma.plan.findUnique({ where: { id: dto.planId } });
+    const plan = await this.prisma.plan.findUnique({
+      where: { id: dto.planId },
+    });
     if (!plan) throw new BadRequestException('Plan not found');
 
     const session = await this.stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       mode: 'payment',
-      line_items: [{
-        price_data: {
-          currency: 'usd',
-          product_data: { name: plan.name },
-          unit_amount: Math.round(plan.price * 100),
+      line_items: [
+        {
+          price_data: {
+            currency: 'usd',
+            product_data: { name: plan.name },
+            unit_amount: Math.round(plan.price * 100),
+          },
+          quantity: 1,
         },
-        quantity: 1,
-      }],
+      ],
       // ✅ metadata type is object of strings
       metadata: {
         planId: dto.planId,
@@ -63,7 +71,10 @@ export class SubscriptionService {
       const session = event.data.object as Stripe.Checkout.Session;
 
       // ✅ Fix: Type-safe access to metadata
-      const metadata = session.metadata as { planId: string; userId: string } | null;
+      const metadata = session.metadata as {
+        planId: string;
+        userId: string;
+      } | null;
 
       if (!metadata?.planId || !metadata?.userId) {
         throw new BadRequestException('Missing metadata in session');

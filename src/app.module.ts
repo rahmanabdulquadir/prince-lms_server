@@ -24,6 +24,7 @@ import { PlanModule } from './main/plan/plan.module';
 import { SubscriptionController } from './main/subscription/subscription.controller';
 import { SubscriptionModule } from './main/subscription/subscription.module';
 import { ProfileModule } from './main/profile/profile.module';
+import { UserModule } from './main/user/user.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { ProfileModule } from './main/profile/profile.module';
     PlanModule,
     SubscriptionModule,
     ProfileModule,
+    UserModule,
   ],
   controllers: [
     AppController,

@@ -7,11 +7,11 @@ import { UpdateProfileDto } from './dto/update-profile.dto';
 export class ProfileService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(data: CreateProfileDto) {
-    return this.prisma.profile.create({
-      data,
-    });
-  }
+  // async create(data: CreateProfileDto) {
+  //   return this.prisma.profile.create({
+  //     data,
+  //   });
+  // }
 
   async findByUserId(userId: string) {
     const profile = await this.prisma.profile.findUnique({

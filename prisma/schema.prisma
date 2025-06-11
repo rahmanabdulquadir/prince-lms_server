@@ -29,24 +29,24 @@ model User {
   FavoriteContents FavoriteContent[]
   SavedQuotes      SavedQuote[]
 
-  isVerified       Boolean  @default(false)
-  otp              String?  // Store the latest OTP temporarily
-  otpExpiresAt     DateTime? // OTP expiration time
-  otpType          String?  // 'EMAIL' or 'PHONE'
+  isVerified   Boolean   @default(false)
+  otp          String? // Store the latest OTP temporarily
+  otpExpiresAt DateTime? // OTP expiration time
+  otpType      String? // 'EMAIL' or 'PHONE'
   // Profile          Profile?
 
   OtpVerification OtpVerification[]
 }
 
 model OtpVerification {
-  id         String   @id @default(uuid())
+  id         String    @id @default(uuid())
   userId     String
-  user       User     @relation(fields: [userId], references: [id])
+  user       User      @relation(fields: [userId], references: [id])
   otp        String
   method     String
   expiresAt  DateTime
   verifiedAt DateTime?
-  createdAt  DateTime @default(now())
+  createdAt  DateTime  @default(now())
 }
 
 // model Profile {
@@ -85,18 +85,22 @@ model Module {
 }
 
 model Content {
-  id         String     @id @default(uuid())
-  title      String
-  url        String
-  duration   Int
-  tags       String[]
-  moduleId   String
-  module     Module     @relation(fields: [moduleId], references: [id], onDelete: Cascade)
-  progresses Progress[]
-  createdAt  DateTime   @default(now())
-  updatedAt  DateTime   @updatedAt
+  id          String   @id @default(uuid())
+  title       String
+  url         String
+  duration    Int
+  description String
+  viewCount   Int
+  tags        String[]
 
+  moduleId String
+  module   Module @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+
+  progresses      Progress[]
   favoriteByUsers FavoriteContent[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Progress {

@@ -89,8 +89,8 @@ model Content {
   title       String
   url         String
   duration    Int
-  description String
-  viewCount   Int
+  description String?
+  viewCount   Int?
   tags        String[]
 
   moduleId String

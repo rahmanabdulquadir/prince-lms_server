@@ -24,9 +24,13 @@ import { PlanModule } from './main/plan/plan.module';
 import { SubscriptionController } from './main/subscription/subscription.controller';
 import { SubscriptionModule } from './main/subscription/subscription.module';
 import { UserModule } from './main/user/user.module';
+import { ConfigModule } from '@nestjs/config';
 
 @Module({
   imports: [
+    ConfigModule.forRoot({
+      isGlobal: true, // Makes .env available app-wide
+    }),
     PrismaModule,
     AuthModule,
     ContactModule,

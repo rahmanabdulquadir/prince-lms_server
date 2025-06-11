@@ -4,6 +4,7 @@ import {
   Controller,
   Get,
   Param,
+  Patch,
   Post,
   UploadedFile,
   UseInterceptors,
@@ -31,6 +32,12 @@ export class ContentController {
     @Body() dto: CreateContentDto,
   ) {
     return this.contentService.create(dto, file);
+  }
+
+  @Patch(':id/view')
+  @ApiOperation({ summary: 'Increment view count for a specific content' })
+  incrementView(@Param('id') id: string) {
+    return this.contentService.incrementViewCount(id);
   }
 
   @Get('module/:moduleId')

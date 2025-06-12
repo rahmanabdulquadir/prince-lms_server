@@ -10,7 +10,9 @@ import '../../config/cloudinary.config';
 export class UserService {
   constructor(private prisma: PrismaService) {}
 
-  private async uploadPhotoToCloudinary(file: Express.Multer.File): Promise<string> {
+  private async uploadPhotoToCloudinary(
+    file: Express.Multer.File,
+  ): Promise<string> {
     return new Promise((resolve, reject) => {
       const uploadStream = cloudinary.uploader.upload_stream(
         {
@@ -42,7 +44,7 @@ export class UserService {
         progresses: true,
         subscriptions: true,
         FavoriteContents: true,
-        Notification: true,
+        notifications: true,
         SavedQuotes: true,
         createdAt: true,
         updatedAt: true,
@@ -50,7 +52,11 @@ export class UserService {
     });
   }
 
-  async updateMe(userId: string, dto: UpdateUserDto, file?: Express.Multer.File) {
+  async updateMe(
+    userId: string,
+    dto: UpdateUserDto,
+    file?: Express.Multer.File,
+  ) {
     let photoUrl: string | undefined;
 
     if (file) {

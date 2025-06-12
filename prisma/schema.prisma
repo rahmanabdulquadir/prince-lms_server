@@ -37,7 +37,7 @@ model User {
 
   OtpVerification OtpVerification[]
 
-  Notification Notification[]
+  notifications Notification[]
 }
 
 model OtpVerification {

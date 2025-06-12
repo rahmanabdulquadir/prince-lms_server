@@ -6,9 +6,26 @@ import { CreateNotificationDto } from './dto/create-notification.dto';
 export class NotificationService {
   constructor(private prisma: PrismaService) {}
 
-  async create(dto: CreateNotificationDto) {
-    return this.prisma.notification.create({ data: dto });
-  }
+async create(dto: CreateNotificationDto) {
+  // Get all users who are subscribed (paid users)
+  const subscribedUsers = await this.prisma.user.findMany({
+    where: { isSubscribed: true },
+    select: { id: true },
+  });
+
+  // Create a notification for each subscribed user
+  const notifications = subscribedUsers.map((user) =>
+    this.prisma.notification.create({
+      data: {
+        title: dto.title,
+        message: dto.message,
+        userId: user.id,
+      },
+    }),
+  );
+
+  return Promise.all(notifications);
+}
 
   async findAllByUser(userId: string) {
     return this.prisma.notification.findMany({
@@ -24,3 +41,4 @@ export class NotificationService {
     });
   }
 }
+

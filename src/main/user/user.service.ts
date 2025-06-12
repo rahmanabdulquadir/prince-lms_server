@@ -42,6 +42,7 @@ export class UserService {
         progresses: true,
         subscriptions: true,
         FavoriteContents: true,
+        Notification: true,
         SavedQuotes: true,
         createdAt: true,
         updatedAt: true,

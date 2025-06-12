@@ -25,6 +25,7 @@ import { SubscriptionController } from './main/subscription/subscription.control
 import { SubscriptionModule } from './main/subscription/subscription.module';
 import { UserModule } from './main/user/user.module';
 import { ConfigModule } from '@nestjs/config';
+import { NotificationModule } from './main/notification/notification.module';
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { ConfigModule } from '@nestjs/config';
     PlanModule,
     SubscriptionModule,
     UserModule,
+    NotificationModule,
   ],
   controllers: [
     AppController,

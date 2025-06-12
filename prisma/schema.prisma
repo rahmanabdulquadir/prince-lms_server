@@ -36,6 +36,8 @@ model User {
   // Profile          Profile?
 
   OtpVerification OtpVerification[]
+
+  Notification Notification[]
 }
 
 model OtpVerification {
@@ -101,6 +103,16 @@ model Content {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Notification {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  title       String
+  message     String
+  isRead      Boolean  @default(false)
+  createdAt   DateTime @default(now())
 }
 
 model Progress {

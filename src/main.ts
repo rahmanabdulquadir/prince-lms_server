@@ -9,6 +9,11 @@ dotenv.config();
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+   app.enableCors({
+    origin: '*', // Allow any origin
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+  });
+
   // ✅ This catches all requests — including Stripe's — and preserves rawBody
   app.use(
     express.json({

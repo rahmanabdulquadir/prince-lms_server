@@ -28,9 +28,10 @@ export class UserController {
   }
 
   @Get()
-getAllUsers() {
-  return this.userService.getAllUsers();
-}
+  @ApiBearerAuth()
+  getAllUsers() {
+    return this.userService.getAllUsers();
+  }
 
   @Patch('me')
   @UseInterceptors(FileInterceptor('file'))

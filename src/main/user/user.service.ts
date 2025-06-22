@@ -30,6 +30,21 @@ export class UserService {
     });
   }
 
+  async getAllUsers() {
+    return this.prisma.user.findMany({
+      select: {
+        id: true,
+        fullName: true,
+        email: true,
+        phoneNumber: true,
+        role: true,
+        isSubscribed: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+  }
+
   async getMe(userId: string) {
     return this.prisma.user.findUnique({
       where: { id: userId },

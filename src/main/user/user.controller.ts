@@ -27,6 +27,11 @@ export class UserController {
     return this.userService.getMe(userId);
   }
 
+  @Get()
+getAllUsers() {
+  return this.userService.getAllUsers();
+}
+
   @Patch('me')
   @UseInterceptors(FileInterceptor('file'))
   @ApiConsumes('multipart/form-data')

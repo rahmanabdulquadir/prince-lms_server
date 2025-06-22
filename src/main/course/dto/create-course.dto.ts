@@ -38,12 +38,12 @@ export class CreateCourseDto {
   @IsOptional()
   thumbnail?: any; // Will receive the file as `Express.Multer.File`
 
-  @ApiProperty({
-    example: ['backend', 'nestjs', 'typescript'],
-    description: 'Tags or categories associated with the course',
-    type: [String],
-  })
-  @IsArray()
-  @IsString({ each: true })
-  category: string[];
+ @ApiProperty({
+  example: ['backend', 'nestjs', 'typescript'],
+  description: 'Tags or categories associated with the course',
+  type: [String],
+})
+@IsArray()
+@IsString({ each: true })
+category: string[] | string;
 }

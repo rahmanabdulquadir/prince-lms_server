@@ -27,20 +27,32 @@ export class CourseService {
     });
   }
 
-  async create(dto: CreateCourseDto, file?: Express.Multer.File) {
-    let thumbnailUrl: string | undefined;
+async create(dto: CreateCourseDto, file?: Express.Multer.File) {
+  let thumbnailUrl: string | undefined;
 
-    if (file) {
-      thumbnailUrl = await this.uploadThumbnailToCloudinary(file);
-    }
-
-    const data = {
-      ...dto,
-      thumbnail: thumbnailUrl ?? dto.thumbnail,
-    };
-
-    return this.prisma.course.create({ data });
+  if (file) {
+    thumbnailUrl = await this.uploadThumbnailToCloudinary(file);
   }
+
+  // Type guard to safely handle category
+  const category: string[] = Array.isArray(dto.category)
+    ? dto.category
+    : typeof dto.category === 'string'
+    ? dto.category.split(',').map((tag) => tag.trim())
+    : [];
+
+  const isPaid =
+    typeof dto.isPaid === 'string' ? dto.isPaid === 'true' : dto.isPaid;
+
+  const data = {
+    ...dto,
+    isPaid,
+    category,
+    thumbnail: thumbnailUrl ?? dto.thumbnail,
+  };
+
+  return this.prisma.course.create({ data });
+}
 
   findAll() {
     return this.prisma.course.findMany({ include: { modules: true } });

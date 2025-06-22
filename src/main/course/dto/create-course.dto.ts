@@ -1,5 +1,11 @@
-import { IsArray, IsBoolean, IsOptional, IsString } from 'class-validator';
+import {
+  IsArray,
+  IsBoolean,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 
 export class CreateCourseDto {
   @ApiProperty({
@@ -21,15 +27,16 @@ export class CreateCourseDto {
     description: 'Indicates whether the course is paid or free',
   })
   @IsBoolean()
+  @Type(() => Boolean)
   isPaid: boolean;
 
   @ApiPropertyOptional({
-    example: 'https://example.com/course-thumbnail.jpg',
-    description: 'Optional URL for the course thumbnail image',
+    type: 'string',
+    format: 'binary',
+    description: 'Thumbnail image file',
   })
   @IsOptional()
-  @IsString()
-  thumbnail?: string;
+  thumbnail?: any; // Will receive the file as `Express.Multer.File`
 
   @ApiProperty({
     example: ['backend', 'nestjs', 'typescript'],

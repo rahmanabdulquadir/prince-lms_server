@@ -8,6 +8,7 @@ import { MailService } from '../mail/mail.service';
 import { JwtAuthGuard } from 'src/common/guard/jwt.guard';
 import { PrismaModule } from '../prisma/prisma.module';
 import { OtpService } from './services/otp.service';
+import { TwilioModule } from '../twilio/twilio.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { OtpService } from './services/otp.service';
       secret: process.env.JWT_SECRET,
       signOptions: { expiresIn: '1d' },
     }),
+    TwilioModule
   ],
   providers: [AuthService, PrismaService, JwtStrategy, MailService, JwtAuthGuard, OtpService],
   controllers: [AuthController],

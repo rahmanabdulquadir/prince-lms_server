@@ -26,6 +26,8 @@ import { SubscriptionModule } from './main/subscription/subscription.module';
 import { UserModule } from './main/user/user.module';
 import { ConfigModule } from '@nestjs/config';
 import { NotificationModule } from './main/notification/notification.module';
+import { TwilioService } from './main/twilio/twilio.service';
+import { TwilioModule } from './main/twilio/twilio.module';
 
 @Module({
   imports: [
@@ -46,6 +48,7 @@ import { NotificationModule } from './main/notification/notification.module';
     SubscriptionModule,
     UserModule,
     NotificationModule,
+    TwilioModule,
   ],
   controllers: [
     AppController,
@@ -58,6 +61,7 @@ import { NotificationModule } from './main/notification/notification.module';
     AppService,
     PrismaService,
     MailService,
+    TwilioService,
     // ModuleService,
     // CourseService,
     // ContentService,

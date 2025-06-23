@@ -201,25 +201,42 @@ async sendOtp(pendingUserId: string, method: 'email' | 'phone') {
   return { message: 'OTP sent successfully' };
 }
 
-  async verifyOtp(userId: string, otp: string) {
-    const record = await this.prisma.otpVerification.findFirst({
-      where: {
-        userId,
-        otp,
-        expiresAt: { gte: new Date() },
-        verifiedAt: null,
-      },
-    });
+ async verifyOtp(pendingUserId: string, otp: string) {
+  const record = await this.prisma.otpVerification.findFirst({
+    where: {
+      userId: pendingUserId,
+      otp,
+      expiresAt: { gte: new Date() },
+      verifiedAt: null,
+    },
+  });
 
-    if (!record) throw new BadRequestException('Invalid or expired OTP');
+  if (!record) throw new BadRequestException('Invalid or expired OTP');
 
-    await this.prisma.otpVerification.update({
-      where: { id: record.id },
-      data: { verifiedAt: new Date() },
-    });
+  // Mark OTP as used
+  await this.prisma.otpVerification.update({
+    where: { id: record.id },
+    data: { verifiedAt: new Date() },
+  });
 
-    return { message: 'OTP verified successfully' };
-  }
+  const pending = await this.prisma.pendingUser.findUnique({ where: { id: pendingUserId } });
+  if (!pending) throw new BadRequestException('Pending user not found');
+
+  // Move to User table
+  const user = await this.prisma.user.create({
+    data: {
+      fullName: pending.fullName,
+      email: pending.email,
+      phoneNumber: pending.phoneNumber,
+      password: pending.password,
+    },
+  });
+
+  // Delete pending user entry
+  await this.prisma.pendingUser.delete({ where: { id: pendingUserId } });
+
+  return this.signToken(user);
+}
 
   async resendOtp(userId: string, method: 'email' | 'phone') {
     // Optional: Enforce 60-second delay

@@ -15,6 +15,7 @@ import { MailService } from '../mail/mail.service';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { randomUUID } from 'crypto';
 import { OtpService } from './services/otp.service';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
 @Injectable()
 export class AuthService {
@@ -22,31 +23,52 @@ export class AuthService {
     private prisma: PrismaService,
     private jwtService: JwtService,
     private mailService: MailService,
-    private otpService: OtpService
+    private otpService: OtpService,
   ) {}
 
   async register(dto: RegisterDto) {
-    const userExists = await this.prisma.user.findUnique({
+    const emailExists = await this.prisma.user.findUnique({
       where: { email: dto.email },
     });
-    if (userExists) throw new BadRequestException('Email already in use');
-  
-    const hash = await bcrypt.hash(dto.password, 10);
-  
-    // Use a transaction to ensure atomicity
-    const [user] = await this.prisma.$transaction([
-      this.prisma.user.create({
-        data: {
-          fullName: dto.fullName,
-          email: dto.email,
-          phoneNumber: dto.phoneNumber,
-          password: hash,
-        },
-      }),
-    ]);
-    return this.signToken(user);
+    if (emailExists) throw new BadRequestException('Email already in use');
+
+    const phoneExists = await this.prisma.user.findUnique({
+      where: { phoneNumber: dto.phoneNumber },
+    });
+    if (phoneExists)
+      throw new BadRequestException('Phone number already in use');
+
+    const pendingEmail = await this.prisma.pendingUser.findUnique({
+      where: { email: dto.email },
+    });
+    if (pendingEmail)
+      throw new BadRequestException('Email already pending verification');
+
+    const pendingPhone = await this.prisma.pendingUser.findUnique({
+      where: { phoneNumber: dto.phoneNumber },
+    });
+    if (pendingPhone)
+      throw new BadRequestException(
+        'Phone number already pending verification',
+      );
+
+    const hashedPassword = await bcrypt.hash(dto.password, 10);
+
+    // Save to PendingUser
+    const pending = await this.prisma.pendingUser.create({
+      data: {
+        fullName: dto.fullName,
+        email: dto.email,
+        phoneNumber: dto.phoneNumber,
+        password: hashedPassword,
+      },
+    });
+
+    return {
+      message: 'Pending registration created. Please verify via OTP.',
+      userId: pending.id,
+    };
   }
-  
 
   async login(dto: LoginDto) {
     const user = await this.prisma.user.findUnique({
@@ -107,7 +129,10 @@ export class AuthService {
 
     const matchedUser = await Promise.any(
       users.map(async (user) => {
-        const isValid = await bcrypt.compare(dto.token, user.resetToken as string);
+        const isValid = await bcrypt.compare(
+          dto.token,
+          user.resetToken as string,
+        );
         if (isValid) return user;
         throw new Error();
       }),
@@ -133,25 +158,25 @@ export class AuthService {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
     });
-  
+
     if (!user) throw new BadRequestException('User not found');
-  
+
     const isMatch = await bcrypt.compare(dto.currentPassword, user.password);
-    if (!isMatch) throw new BadRequestException('Current password is incorrect');
-  
+    if (!isMatch)
+      throw new BadRequestException('Current password is incorrect');
+
     const hashedNewPassword = await bcrypt.hash(dto.newPassword, 10);
-  
+
     await this.prisma.user.update({
       where: { id: userId },
       data: { password: hashedNewPassword },
     });
-  
+
     return { message: 'Password changed successfully' };
   }
-  
 
-   // Called after registration to start OTP verification
-   async sendOtp(userId: string, method: 'email' | 'phone') {
+  // Called after registration to start OTP verification
+  async sendOtp(userId: string, method: 'email' | 'phone') {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new BadRequestException('User not found');
 

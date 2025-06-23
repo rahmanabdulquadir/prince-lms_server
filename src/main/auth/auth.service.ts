@@ -176,30 +176,30 @@ export class AuthService {
   }
 
   // Called after registration to start OTP verification
-  async sendOtp(userId: string, method: 'email' | 'phone') {
-    const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) throw new BadRequestException('User not found');
+async sendOtp(pendingUserId: string, method: 'email' | 'phone') {
+  const user = await this.prisma.pendingUser.findUnique({ where: { id: pendingUserId } });
+  if (!user) throw new BadRequestException('Pending user not found');
 
-    const otp = this.otpService.generateOtp();
+  const otp = this.otpService.generateOtp();
 
-    await this.prisma.otpVerification.create({
-      data: {
-        id: randomUUID(),
-        otp,
-        userId,
-        method,
-        expiresAt: new Date(Date.now() + 1000 * 60 * 5), // 5 min expiry
-      },
-    });
+  await this.prisma.otpVerification.create({
+    data: {
+      id: randomUUID(),
+      otp,
+      userId: pendingUserId,
+      method,
+      expiresAt: new Date(Date.now() + 1000 * 60 * 5),
+    },
+  });
 
-    if (method === 'email') {
-      await this.otpService.sendOtpByEmail(user.email, otp);
-    } else {
-      await this.otpService.sendOtpByPhone(user.phoneNumber, otp);
-    }
-
-    return { message: 'OTP sent successfully' };
+  if (method === 'email') {
+    await this.otpService.sendOtpByEmail(user.email, otp);
+  } else {
+    await this.otpService.sendOtpByPhone(user.phoneNumber, otp);
   }
+
+  return { message: 'OTP sent successfully' };
+}
 
   async verifyOtp(userId: string, otp: string) {
     const record = await this.prisma.otpVerification.findFirst({

@@ -2,6 +2,7 @@ import { Express } from 'express';
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -44,5 +45,11 @@ export class ContentController {
   @ApiOperation({ summary: 'Get all contents under a specific module' })
   findByModule(@Param('moduleId') moduleId: string) {
     return this.contentService.findByModule(moduleId);
+  }
+
+  @Delete(':id')
+  @ApiOperation({ summary: 'Delete a specific content by ID' })
+  delete(@Param('id') id: string) {
+    return this.contentService.delete(id);
   }
 }

@@ -43,20 +43,20 @@ export class AuthController {
   }
 
   @Post('send-otp')
-@ApiOperation({ summary: 'Send OTP via email or phone' })
-sendOtp(@Body() body: SendOtpDto) {
-  return this.authService.sendOtp(body.userId, body.method);
-}
+  @ApiOperation({ summary: 'Send OTP via email or phone' })
+  sendOtp(@Body() body: SendOtpDto) {
+    return this.authService.sendOtp(body.userId, body.method);
+  }
 
-@Post('verify-otp')
-@ApiOperation({ summary: 'Verify user OTP' })
-verifyOtp(@Body() body: VerifyOtpDto) {
-  return this.authService.verifyOtp(body.userId, body.otp);
-}
+  @Post('verify-otp')
+  @ApiOperation({ summary: 'Verify user OTP' })
+  verifyOtp(@Body() body: VerifyOtpDto) {
+    return this.authService.verifyOtp(body.userId, body.otp);
+  }
 
-@Post('resend-otp')
-@ApiOperation({ summary: 'Resend OTP (after 60s)' })
-resendOtp(@Body() body: SendOtpDto) {
-  return this.authService.resendOtp(body.userId, body.method);
-}
+  @Post('resend-otp')
+  @ApiOperation({ summary: 'Resend OTP (after 60s)' })
+  resendOtp(@Body() body: SendOtpDto) {
+    return this.authService.resendOtp(body.userId, body.method);
+  }
 }

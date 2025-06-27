@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
+import { IsEmail, IsIn, IsNotEmpty, IsString, IsUUID, Length, MinLength } from 'class-validator';
 
 export class RegisterDto {
   @ApiProperty({
@@ -38,16 +38,20 @@ export class RegisterDto {
 
 export class SendOtpDto {
   @ApiProperty()
+  @IsUUID()
   userId: string;
 
   @ApiProperty({ enum: ['email', 'phone'] })
+  @IsIn(['email', 'phone'])
   method: 'email' | 'phone';
 }
 
 export class VerifyOtpDto {
   @ApiProperty()
+  @IsUUID()
   userId: string;
 
   @ApiProperty()
+  @Length(4, 4)
   otp: string;
 }

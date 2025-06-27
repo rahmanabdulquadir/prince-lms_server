@@ -1,8 +1,10 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
+  Patch,
   Post,
   UploadedFile,
   UseInterceptors,
@@ -10,11 +12,8 @@ import {
 import { CreateCourseDto } from './dto/create-course.dto';
 import { CourseService } from './course.service';
 import { FileInterceptor } from '@nestjs/platform-express';
-import {
-  ApiConsumes,
-  ApiBody,
-  ApiTags,
-} from '@nestjs/swagger';
+import { ApiConsumes, ApiBody, ApiTags } from '@nestjs/swagger';
+import { UpdateCourseDto } from './dto/update-course.dto';
 
 @ApiTags('Courses')
 @Controller('courses')
@@ -43,5 +42,25 @@ export class CourseController {
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.courseService.findOne(id);
+  }
+
+  @Patch(':id')
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(FileInterceptor('thumbnail'))
+  @ApiBody({
+    type: UpdateCourseDto,
+    description: 'Update course with optional thumbnail image upload',
+  })
+  update(
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File,
+    @Body() updateCourseDto: UpdateCourseDto,
+  ) {
+    return this.courseService.update(id, updateCourseDto, file);
+  }
+
+  @Delete(':id')
+  delete(@Param('id') id: string) {
+    return this.courseService.delete(id);
   }
 }

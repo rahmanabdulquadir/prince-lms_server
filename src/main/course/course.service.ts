@@ -5,6 +5,7 @@ import { Express } from 'express';
 import { v2 as cloudinary } from 'cloudinary';
 import * as streamifier from 'streamifier';
 import '../../config/cloudinary.config';
+import { UpdateCourseDto } from './dto/update-course.dto';
 
 @Injectable()
 export class CourseService {
@@ -61,4 +62,43 @@ async create(dto: CreateCourseDto, file?: Express.Multer.File) {
   findOne(id: string) {
     return this.prisma.course.findUnique({ where: { id }, include: { modules: true } });
   }
+
+  async update(
+  id: string,
+  dto: UpdateCourseDto,
+  file?: Express.Multer.File,
+) {
+  let thumbnailUrl: string | undefined;
+
+  if (file) {
+    thumbnailUrl = await this.uploadThumbnailToCloudinary(file);
+  }
+
+  const category: string[] = Array.isArray(dto.category)
+    ? dto.category
+    : typeof dto.category === 'string'
+    ? dto.category.split(',').map((tag) => tag.trim())
+    : [];
+
+  const isPaid =
+    typeof dto.isPaid === 'string' ? dto.isPaid === 'true' : dto.isPaid;
+
+  const data = {
+    ...dto,
+    isPaid,
+    category,
+    thumbnail: thumbnailUrl ?? dto.thumbnail,
+  };
+
+  return this.prisma.course.update({
+    where: { id },
+    data,
+  });
+}
+
+async delete(id: string) {
+  return this.prisma.course.delete({
+    where: { id },
+  });
+}
 }

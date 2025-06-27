@@ -111,6 +111,28 @@ export class SubscriptionService {
     return { received: true };
   }
 
+  async findAllPayments() {
+  return this.prisma.payment.findMany({
+    include: {
+      subscription: {
+        include: {
+          user: {
+            select: {
+              id: true,
+              fullName: true,
+              email: true,
+              phoneNumber: true,
+            },
+          },
+          plan: true,
+        },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+}
+
+
   async findSubscriptions(userId: string) {
     return this.prisma.subscription.findMany({
       where: { userId },

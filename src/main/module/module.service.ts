@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateModuleDto } from './dto/create-module.dto';
+import { UpdateModuleDto } from './dto/update-module.dto';
 
 @Injectable()
 export class ModuleService {
@@ -14,6 +15,19 @@ export class ModuleService {
     return this.prisma.module.findMany({
       where: { courseId },
       include: { contents: true },
+    });
+  }
+
+   update(id: string, data: UpdateModuleDto) {
+    return this.prisma.module.update({
+      where: { id },
+      data,
+    });
+  }
+
+  delete(id: string) {
+    return this.prisma.module.delete({
+      where: { id },
     });
   }
 }

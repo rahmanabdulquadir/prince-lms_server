@@ -41,6 +41,11 @@ export class SubscriptionController {
     }
   }
 
+  @Get('payments')
+  getAllPayments() {
+    return this.svc.findAllPayments();
+  }
+
   @Get()
   getUserSubscriptions(@Query('userId') userId: string) {
     return this.svc.findSubscriptions(userId);

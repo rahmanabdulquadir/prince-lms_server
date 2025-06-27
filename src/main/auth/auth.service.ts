@@ -26,49 +26,47 @@ export class AuthService {
     private otpService: OtpService,
   ) {}
 
-  async register(dto: RegisterDto) {
-    const emailExists = await this.prisma.user.findUnique({
-      where: { email: dto.email },
-    });
-    if (emailExists) throw new BadRequestException('Email already in use');
+async register(dto: RegisterDto) {
+  const emailExists = await this.prisma.user.findUnique({
+    where: { email: dto.email },
+  });
+  if (emailExists) throw new BadRequestException('Email already in use');
 
-    const phoneExists = await this.prisma.user.findUnique({
-      where: { phoneNumber: dto.phoneNumber },
-    });
-    if (phoneExists)
-      throw new BadRequestException('Phone number already in use');
+  const phoneExists = await this.prisma.user.findUnique({
+    where: { phoneNumber: dto.phoneNumber },
+  });
+  if (phoneExists)
+    throw new BadRequestException('Phone number already in use');
 
-    const pendingEmail = await this.prisma.pendingUser.findUnique({
-      where: { email: dto.email },
-    });
-    if (pendingEmail)
-      throw new BadRequestException('Email already pending verification');
+  const pendingEmail = await this.prisma.pendingUser.findUnique({
+    where: { email: dto.email },
+  });
+  if (pendingEmail)
+    throw new BadRequestException('Email already pending verification');
 
-    const pendingPhone = await this.prisma.pendingUser.findUnique({
-      where: { phoneNumber: dto.phoneNumber },
-    });
-    if (pendingPhone)
-      throw new BadRequestException(
-        'Phone number already pending verification',
-      );
+  const pendingPhone = await this.prisma.pendingUser.findUnique({
+    where: { phoneNumber: dto.phoneNumber },
+  });
+  if (pendingPhone)
+    throw new BadRequestException('Phone number already pending verification');
 
-    const hashedPassword = await bcrypt.hash(dto.password, 10);
+  const hashedPassword = await bcrypt.hash(dto.password, 10);
 
-    // Save to PendingUser
-    const pending = await this.prisma.pendingUser.create({
-      data: {
-        fullName: dto.fullName,
-        email: dto.email,
-        phoneNumber: dto.phoneNumber,
-        password: hashedPassword,
-      },
-    });
+  const pending = await this.prisma.pendingUser.create({
+    data: {
+      fullName: dto.fullName,
+      email: dto.email,
+      phoneNumber: dto.phoneNumber,
+      password: hashedPassword,
+    },
+  });
 
-    return {
-      message: 'Pending registration created. Please verify via OTP.',
-      userId: pending.id,
-    };
-  }
+  return {
+    status: 'pending',
+    message: 'Registration successful. Please verify your account via OTP.',
+    userId: pending.id,
+  };
+}
 
   async login(dto: LoginDto) {
     const user = await this.prisma.user.findUnique({
@@ -201,7 +199,7 @@ async sendOtp(pendingUserId: string, method: 'email' | 'phone') {
   return { message: 'OTP sent successfully' };
 }
 
- async verifyOtp(pendingUserId: string, otp: string) {
+async verifyOtp(pendingUserId: string, otp: string) {
   const record = await this.prisma.otpVerification.findFirst({
     where: {
       userId: pendingUserId,
@@ -213,7 +211,6 @@ async sendOtp(pendingUserId: string, method: 'email' | 'phone') {
 
   if (!record) throw new BadRequestException('Invalid or expired OTP');
 
-  // Mark OTP as used
   await this.prisma.otpVerification.update({
     where: { id: record.id },
     data: { verifiedAt: new Date() },
@@ -222,7 +219,6 @@ async sendOtp(pendingUserId: string, method: 'email' | 'phone') {
   const pending = await this.prisma.pendingUser.findUnique({ where: { id: pendingUserId } });
   if (!pending) throw new BadRequestException('Pending user not found');
 
-  // Move to User table
   const user = await this.prisma.user.create({
     data: {
       fullName: pending.fullName,
@@ -232,10 +228,15 @@ async sendOtp(pendingUserId: string, method: 'email' | 'phone') {
     },
   });
 
-  // Delete pending user entry
   await this.prisma.pendingUser.delete({ where: { id: pendingUserId } });
 
-  return this.signToken(user);
+  const tokenData = await this.signToken(user);
+
+  return {
+    status: 'verified',
+    message: 'OTP verified successfully. User registered.',
+    ...tokenData,
+  };
 }
 
   async resendOtp(userId: string, method: 'email' | 'phone') {

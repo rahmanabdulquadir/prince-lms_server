@@ -25,6 +25,11 @@ export class ModuleController {
     return this.moduleService.findByCourse(courseId);
   }
 
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.moduleService.findOne(id);
+  }
+
   @Patch(':id')
   update(@Param('id') id: string, @Body() dto: UpdateModuleDto) {
     return this.moduleService.update(id, dto);

@@ -18,7 +18,14 @@ export class ModuleService {
     });
   }
 
-   update(id: string, data: UpdateModuleDto) {
+  findOne(id: string) {
+    return this.prisma.module.findUnique({
+      where: { id },
+      include: { contents: true }, // include contents if you want full detail
+    });
+  }
+
+  update(id: string, data: UpdateModuleDto) {
     return this.prisma.module.update({
       where: { id },
       data,

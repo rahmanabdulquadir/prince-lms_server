@@ -17,6 +17,8 @@ model PendingUser {
   phoneNumber String   @unique
   password    String
   createdAt   DateTime @default(now())
+
+  otps OtpVerification[] @relation("PendingUserOtp")
 }
 
 model User {
@@ -34,30 +36,23 @@ model User {
   role             Role           @default(USER)
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
- 
+
   FavoriteContents FavoriteContent[]
   SavedQuotes      SavedQuote[]
-
-  isVerified   Boolean   @default(false)
-  otp          String? // Store the latest OTP temporarily
-  otpExpiresAt DateTime? // OTP expiration time
-  otpType      String? // 'EMAIL' or 'PHONE'
   // Profile          Profile?
-
-  OtpVerification OtpVerification[]
 
   notifications Notification[]
 }
 
 model OtpVerification {
-  id         String    @id @default(uuid())
+  id         String      @id @default(uuid())
   userId     String
-  user       User      @relation(fields: [userId], references: [id])
+  user       PendingUser @relation("PendingUserOtp", fields: [userId], references: [id], onDelete: Cascade)
   otp        String
   method     String
   expiresAt  DateTime
   verifiedAt DateTime?
-  createdAt  DateTime  @default(now())
+  createdAt  DateTime    @default(now())
 }
 
 model Course {
@@ -104,13 +99,13 @@ model Content {
 }
 
 model Notification {
-  id          String   @id @default(uuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id])
-  title       String
-  message     String
-  isRead      Boolean  @default(false)
-  createdAt   DateTime @default(now())
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
 }
 
 model Progress {

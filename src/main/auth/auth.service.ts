@@ -209,26 +209,45 @@ async verifyOtp(pendingUserId: string, otp: string) {
     },
   });
 
-  if (!record) throw new BadRequestException('Invalid or expired OTP');
+  if (!record) {
+    throw new BadRequestException('Invalid or expired OTP');
+  }
 
+  // Mark OTP as verified
   await this.prisma.otpVerification.update({
     where: { id: record.id },
     data: { verifiedAt: new Date() },
   });
 
-  const pending = await this.prisma.pendingUser.findUnique({ where: { id: pendingUserId } });
-  if (!pending) throw new BadRequestException('Pending user not found');
+  // Fetch the pending user
+  const pending = await this.prisma.pendingUser.findUnique({
+    where: { id: pendingUserId },
+  });
 
+  if (!pending) {
+    throw new BadRequestException('Pending user not found');
+  }
+
+  // Create actual user
   const user = await this.prisma.user.create({
     data: {
       fullName: pending.fullName,
       email: pending.email,
       phoneNumber: pending.phoneNumber,
       password: pending.password,
+      // isVerified: true, // ✅ Optional: Set user as verified
     },
   });
 
-  await this.prisma.pendingUser.delete({ where: { id: pendingUserId } });
+  // First, delete all OTPs linked to pendingUserId to avoid FK constraint issue
+  await this.prisma.otpVerification.deleteMany({
+    where: { userId: pendingUserId },
+  });
+
+  // Then delete the pending user
+  await this.prisma.pendingUser.delete({
+    where: { id: pendingUserId },
+  });
 
   const tokenData = await this.signToken(user);
 

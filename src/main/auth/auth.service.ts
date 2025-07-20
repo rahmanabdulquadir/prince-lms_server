@@ -16,6 +16,7 @@ import { ChangePasswordDto } from './dto/change-password.dto';
 import { randomUUID } from 'crypto';
 import { OtpService } from './services/otp.service';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
+import { User } from '@prisma/client';
 
 @Injectable()
 export class AuthService {
@@ -25,6 +26,35 @@ export class AuthService {
     private mailService: MailService,
     private otpService: OtpService,
   ) {}
+
+  private async signToken(user: User) {
+    const payload = {
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+    };
+
+    const accessToken = await this.jwtService.signAsync(payload, {
+      secret: process.env.JWT_ACCESS_SECRET,
+      expiresIn: process.env.JWT_ACCESS_EXPIRES_IN || '1d',
+    });
+
+    const refreshToken = await this.jwtService.signAsync(payload, {
+      secret: process.env.JWT_REFRESH_SECRET,
+      expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
+    });
+
+    return {
+      accessToken,
+      refreshToken,
+      user: {
+        id: user.id,
+        fullName: user.fullName,
+        email: user.email,
+        role: user.role,
+      },
+    };
+  }
 
   async register(dto: RegisterDto) {
     const emailExists = await this.prisma.user.findUnique({
@@ -70,27 +100,59 @@ export class AuthService {
     };
   }
 
+  // async login(dto: LoginDto) {
+  //   const user = await this.prisma.user.findUnique({
+  //     where: { email: dto.email },
+  //   });
+  //   if (!user) throw new UnauthorizedException('Invalid credentials');
+
+  //   const valid = await bcrypt.compare(dto.password, user.password);
+  //   if (!valid) throw new UnauthorizedException('Invalid credentials');
+
+  //   return this.signToken(user);
+  // }
+
+  // private async signToken(user: any) {
+  //   const payload = { sub: user.id, email: user.email };
+  //   const accessToken = await this.jwtService.signAsync(payload);
+
+  //   const { password, ...userWithoutPassword } = user;
+  //   return {
+  //     user: userWithoutPassword,
+  //     accessToken,
+  //   };
+  // }
+
   async login(dto: LoginDto) {
     const user = await this.prisma.user.findUnique({
       where: { email: dto.email },
     });
-    if (!user) throw new UnauthorizedException('Invalid credentials');
 
-    const valid = await bcrypt.compare(dto.password, user.password);
-    if (!valid) throw new UnauthorizedException('Invalid credentials');
+    if (user) {
+      const valid = await bcrypt.compare(dto.password, user.password);
+      if (!valid) throw new UnauthorizedException('Invalid credentials');
+      return this.signToken(user);
+    }
 
-    return this.signToken(user);
-  }
+    // Check if they are a pending user instead
+    const pendingUser = await this.prisma.pendingUser.findUnique({
+      where: { email: dto.email },
+    });
 
-  private async signToken(user: any) {
-    const payload = { sub: user.id, email: user.email };
-    const accessToken = await this.jwtService.signAsync(payload);
+    if (pendingUser) {
+      const valid = await bcrypt.compare(dto.password, pendingUser.password);
+      if (!valid) throw new UnauthorizedException('Invalid credentials');
 
-    const { password, ...userWithoutPassword } = user;
-    return {
-      user: userWithoutPassword,
-      accessToken,
-    };
+      // Tell client the user is pending verification
+      throw new BadRequestException({
+        status: 'pending',
+        message: 'Account not verified yet. Please complete OTP verification.',
+        userId: pendingUser.id,
+      });
+    }
+
+    // If not found in both tables
+    throw new UnauthorizedException('Invalid credentials');
   }
 
   async forgotPassword(dto: ForgotPasswordDto) {

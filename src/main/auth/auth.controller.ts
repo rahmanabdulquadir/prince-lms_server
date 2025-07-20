@@ -4,7 +4,7 @@ import { RegisterDto, SendOtpDto, VerifyOtpDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
-import { ResetPasswordDto } from './dto/reset-password.dto';
+import { ResetPasswordDto, VerifyPasswordOtpDto } from './dto/reset-password.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { JwtAuthGuard } from 'src/common/guard/jwt.guard';
 
@@ -22,17 +22,17 @@ export class AuthController {
     return this.authService.login(dto);
   }
 
-  @Post('forgot-password')
-  @ApiOperation({ summary: 'Request password reset' })
-  forgotPassword(@Body() dto: ForgotPasswordDto) {
-    return this.authService.forgotPassword(dto);
-  }
+  // @Post('forgot-password')
+  // @ApiOperation({ summary: 'Request password reset' })
+  // forgotPassword(@Body() dto: ForgotPasswordDto) {
+  //   return this.authService.forgotPassword(dto);
+  // }
 
-  @Post('reset-password')
-  @ApiOperation({ summary: 'Reset user password' })
-  resetPassword(@Body() dto: ResetPasswordDto) {
-    return this.authService.resetPassword(dto);
-  }
+  // @Post('reset-password')
+  // @ApiOperation({ summary: 'Reset user password' })
+  // resetPassword(@Body() dto: ResetPasswordDto) {
+  //   return this.authService.resetPassword(dto);
+  // }
 
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
@@ -59,4 +59,21 @@ export class AuthController {
   resendOtp(@Body() body: SendOtpDto) {
     return this.authService.resendOtp(body.userId, body.method);
   }
+
+
+
+  @Post('forgot-password')
+forgotPassword(@Body() dto: ForgotPasswordDto) {
+  return this.authService.forgotPassword(dto);
+}
+
+@Post('verify-password-otp')
+verifyPasswordOtp(@Body() dto: VerifyPasswordOtpDto) {
+  return this.authService.verifyPasswordOtp(dto);
+}
+
+@Post('reset-password')
+resetPassword(@Body() dto: ResetPasswordDto) {
+  return this.authService.resetPassword(dto);
+}
 }

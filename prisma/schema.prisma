@@ -18,7 +18,19 @@ model PendingUser {
   password    String
   createdAt   DateTime @default(now())
 
-  otps OtpVerification[] @relation("PendingUserOtp")
+  otps PendingUserOtp[] @relation("PendingUserOtp")
+}
+
+model PendingUserOtp {
+  id     String      @id @default(uuid())
+  userId String
+  user   PendingUser @relation("PendingUserOtp", fields: [userId], references: [id], onDelete: Cascade)
+
+  otp        String
+  method     String
+  expiresAt  DateTime
+  verifiedAt DateTime?
+  createdAt  DateTime  @default(now())
 }
 
 model User {
@@ -41,18 +53,20 @@ model User {
   SavedQuotes      SavedQuote[]
   // Profile          Profile?
 
-  notifications Notification[]
+  notifications     Notification[]
+  passwordResetOtps PasswordResetOtp[]
 }
 
-model OtpVerification {
-  id         String      @id @default(uuid())
-  userId     String
-  user       PendingUser? @relation("PendingUserOtp", fields: [userId], references: [id], onDelete: Cascade)
+model PasswordResetOtp {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   otp        String
   method     String
   expiresAt  DateTime
   verifiedAt DateTime?
-  createdAt  DateTime    @default(now())
+  createdAt  DateTime  @default(now())
 }
 
 model Course {

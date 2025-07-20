@@ -2,6 +2,7 @@ import {
   Injectable,
   BadRequestException,
   UnauthorizedException,
+  NotFoundException,
 } from '@nestjs/common';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
@@ -9,7 +10,7 @@ import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
-import { ResetPasswordDto } from './dto/reset-password.dto';
+import { ResetPasswordDto, VerifyPasswordOtpDto } from './dto/reset-password.dto';
 import * as crypto from 'crypto';
 import { MailService } from '../mail/mail.service';
 import { ChangePasswordDto } from './dto/change-password.dto';
@@ -100,29 +101,6 @@ export class AuthService {
     };
   }
 
-  // async login(dto: LoginDto) {
-  //   const user = await this.prisma.user.findUnique({
-  //     where: { email: dto.email },
-  //   });
-  //   if (!user) throw new UnauthorizedException('Invalid credentials');
-
-  //   const valid = await bcrypt.compare(dto.password, user.password);
-  //   if (!valid) throw new UnauthorizedException('Invalid credentials');
-
-  //   return this.signToken(user);
-  // }
-
-  // private async signToken(user: any) {
-  //   const payload = { sub: user.id, email: user.email };
-  //   const accessToken = await this.jwtService.signAsync(payload);
-
-  //   const { password, ...userWithoutPassword } = user;
-  //   return {
-  //     user: userWithoutPassword,
-  //     accessToken,
-  //   };
-  // }
-
   async login(dto: LoginDto) {
     const user = await this.prisma.user.findUnique({
       where: { email: dto.email },
@@ -159,61 +137,87 @@ export class AuthService {
     const user = await this.prisma.user.findUnique({
       where: { email: dto.email },
     });
-
-    if (!user) throw new BadRequestException('User not found');
-
-    const token = crypto.randomBytes(32).toString('hex');
-    const hashed = await bcrypt.hash(token, 10);
-
-    await this.prisma.user.update({
-      where: { email: dto.email },
+  
+    if (!user) throw new NotFoundException('User not found');
+  
+    const otp = this.otpService.generateOtp();
+  
+    await this.prisma.passwordResetOtp.create({
       data: {
-        resetToken: hashed,
-        resetTokenExpiry: new Date(Date.now() + 1000 * 60 * 15),
+        userId: user.id,
+        otp,
+        method: 'email',
+        expiresAt: new Date(Date.now() + 5 * 60 * 1000), // 5 minutes
       },
     });
+  
+    // ✅ Actually send the email now
+    await this.otpService.sendOtpByEmail(dto.email, otp);
+  
+    return { message: 'OTP sent to your email', userId: user.id };
+  }
 
-    await this.mailService.sendResetPasswordEmail(dto.email, token);
-    return { message: 'Reset email sent' };
+  async verifyPasswordOtp(dto: VerifyPasswordOtpDto) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: dto.userId },
+    });
+
+    if (!user) throw new NotFoundException('User not found');
+
+    const otpRecord = await this.prisma.passwordResetOtp.findFirst({
+      where: {
+        userId: user.id,
+        otp: dto.otp,
+        expiresAt: { gt: new Date() },
+        verifiedAt: null,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (!otpRecord) throw new BadRequestException('Invalid or expired OTP');
+
+    await this.prisma.passwordResetOtp.update({
+      where: { id: otpRecord.id },
+      data: { verifiedAt: new Date() },
+    });
+
+    return { message: 'OTP verified successfully', userId: user.id };
   }
 
   async resetPassword(dto: ResetPasswordDto) {
-    const users = await this.prisma.user.findMany({
-      where: {
-        resetToken: {
-          not: null,
-        },
-        resetTokenExpiry: {
-          gte: new Date(),
-        },
-      },
+    const user = await this.prisma.user.findUnique({
+      where: { id: dto.userId },
     });
 
-    const matchedUser = await Promise.any(
-      users.map(async (user) => {
-        const isValid = await bcrypt.compare(
-          dto.token,
-          user.resetToken as string,
-        );
-        if (isValid) return user;
-        throw new Error();
-      }),
-    ).catch(() => null);
+    if (!user) throw new NotFoundException('User not found');
 
-    if (!matchedUser) throw new BadRequestException('Invalid or expired token');
+    const verifiedOtp = await this.prisma.passwordResetOtp.findFirst({
+      where: {
+        userId: user.id,
+        verifiedAt: { not: null },
+        expiresAt: { gt: new Date() },
+      },
+      orderBy: { verifiedAt: 'desc' },
+    });
 
-    const hashedPassword = await bcrypt.hash(dto.newPassword, 10);
+    if (!verifiedOtp)
+      throw new BadRequestException(
+        'OTP not verified or has expired. Please verify OTP again.',
+      );
+
+    const hashed = await bcrypt.hash(dto.newPassword, 12);
 
     await this.prisma.user.update({
-      where: { id: matchedUser.id },
-      data: {
-        password: hashedPassword,
-        resetToken: null,
-        resetTokenExpiry: null,
-      },
+      where: { id: user.id },
+      data: { password: hashed },
     });
 
-    return { message: 'Password reset successfully' };
+    // Optional: Delete all reset OTPs
+    await this.prisma.passwordResetOtp.deleteMany({
+      where: { userId: user.id },
+    });
+
+    return { message: 'Password reset successful' };
   }
 
   async changePassword(userId: string, dto: ChangePasswordDto) {
@@ -245,7 +249,7 @@ export class AuthService {
 
     const otp = this.otpService.generateOtp();
 
-    await this.prisma.otpVerification.create({
+    await this.prisma.pendingUserOtp.create({
       data: {
         id: randomUUID(),
         otp,
@@ -265,7 +269,7 @@ export class AuthService {
   }
 
   async verifyOtp(pendingUserId: string, otp: string) {
-    const record = await this.prisma.otpVerification.findFirst({
+    const record = await this.prisma.pendingUserOtp.findFirst({
       where: {
         userId: pendingUserId,
         otp,
@@ -279,7 +283,7 @@ export class AuthService {
     }
 
     // Mark OTP as verified
-    await this.prisma.otpVerification.update({
+    await this.prisma.pendingUserOtp.update({
       where: { id: record.id },
       data: { verifiedAt: new Date() },
     });
@@ -305,7 +309,7 @@ export class AuthService {
     });
 
     // First, delete all OTPs linked to pendingUserId to avoid FK constraint issue
-    await this.prisma.otpVerification.deleteMany({
+    await this.prisma.pendingUserOtp.deleteMany({
       where: { userId: pendingUserId },
     });
 
@@ -325,7 +329,7 @@ export class AuthService {
 
   async resendOtp(userId: string, method: 'email' | 'phone') {
     // Optional: Enforce 60-second delay
-    const lastOtp = await this.prisma.otpVerification.findFirst({
+    const lastOtp = await this.prisma.pendingUserOtp.findFirst({
       where: {
         userId,
         method,

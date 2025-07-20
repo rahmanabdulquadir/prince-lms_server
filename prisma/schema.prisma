@@ -47,7 +47,7 @@ model User {
 model OtpVerification {
   id         String      @id @default(uuid())
   userId     String
-  user       PendingUser @relation("PendingUserOtp", fields: [userId], references: [id], onDelete: Cascade)
+  user       PendingUser? @relation("PendingUserOtp", fields: [userId], references: [id], onDelete: Cascade)
   otp        String
   method     String
   expiresAt  DateTime

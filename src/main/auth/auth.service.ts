@@ -26,47 +26,49 @@ export class AuthService {
     private otpService: OtpService,
   ) {}
 
-async register(dto: RegisterDto) {
-  const emailExists = await this.prisma.user.findUnique({
-    where: { email: dto.email },
-  });
-  if (emailExists) throw new BadRequestException('Email already in use');
+  async register(dto: RegisterDto) {
+    const emailExists = await this.prisma.user.findUnique({
+      where: { email: dto.email },
+    });
+    if (emailExists) throw new BadRequestException('Email already in use');
 
-  const phoneExists = await this.prisma.user.findUnique({
-    where: { phoneNumber: dto.phoneNumber },
-  });
-  if (phoneExists)
-    throw new BadRequestException('Phone number already in use');
+    const phoneExists = await this.prisma.user.findUnique({
+      where: { phoneNumber: dto.phoneNumber },
+    });
+    if (phoneExists)
+      throw new BadRequestException('Phone number already in use');
 
-  const pendingEmail = await this.prisma.pendingUser.findUnique({
-    where: { email: dto.email },
-  });
-  if (pendingEmail)
-    throw new BadRequestException('Email already pending verification');
+    const pendingEmail = await this.prisma.pendingUser.findUnique({
+      where: { email: dto.email },
+    });
+    if (pendingEmail)
+      throw new BadRequestException('Email already pending verification');
 
-  const pendingPhone = await this.prisma.pendingUser.findUnique({
-    where: { phoneNumber: dto.phoneNumber },
-  });
-  if (pendingPhone)
-    throw new BadRequestException('Phone number already pending verification');
+    const pendingPhone = await this.prisma.pendingUser.findUnique({
+      where: { phoneNumber: dto.phoneNumber },
+    });
+    if (pendingPhone)
+      throw new BadRequestException(
+        'Phone number already pending verification',
+      );
 
-  const hashedPassword = await bcrypt.hash(dto.password, 10);
+    const hashedPassword = await bcrypt.hash(dto.password, 10);
 
-  const pending = await this.prisma.pendingUser.create({
-    data: {
-      fullName: dto.fullName,
-      email: dto.email,
-      phoneNumber: dto.phoneNumber,
-      password: hashedPassword,
-    },
-  });
+    const pending = await this.prisma.pendingUser.create({
+      data: {
+        fullName: dto.fullName,
+        email: dto.email,
+        phoneNumber: dto.phoneNumber,
+        password: hashedPassword,
+      },
+    });
 
-  return {
-    status: 'pending',
-    message: 'Registration successful. Please verify your account via OTP.',
-    userId: pending.id,
-  };
-}
+    return {
+      status: 'pending',
+      message: 'Registration successful. Please verify your account via OTP.',
+      userId: pending.id,
+    };
+  }
 
   async login(dto: LoginDto) {
     const user = await this.prisma.user.findUnique({
@@ -169,94 +171,95 @@ async register(dto: RegisterDto) {
       where: { id: userId },
       data: { password: hashedNewPassword },
     });
-
     return { message: 'Password changed successfully' };
   }
 
   // Called after registration to start OTP verification
-async sendOtp(pendingUserId: string, method: 'email' | 'phone') {
-  const user = await this.prisma.pendingUser.findUnique({ where: { id: pendingUserId } });
-  if (!user) throw new BadRequestException('Pending user not found');
+  async sendOtp(pendingUserId: string, method: 'email' | 'phone') {
+    const user = await this.prisma.pendingUser.findUnique({
+      where: { id: pendingUserId },
+    });
+    if (!user) throw new BadRequestException('Pending user not found');
 
-  const otp = this.otpService.generateOtp();
+    const otp = this.otpService.generateOtp();
 
-  await this.prisma.otpVerification.create({
-    data: {
-      id: randomUUID(),
-      otp,
-      userId: pendingUserId,
-      method,
-      expiresAt: new Date(Date.now() + 1000 * 60 * 5),
-    },
-  });
+    await this.prisma.otpVerification.create({
+      data: {
+        id: randomUUID(),
+        otp,
+        userId: pendingUserId,
+        method,
+        expiresAt: new Date(Date.now() + 1000 * 60 * 5),
+      },
+    });
 
-  if (method === 'email') {
-    await this.otpService.sendOtpByEmail(user.email, otp);
-  } else {
-    await this.otpService.sendOtpByPhone(user.phoneNumber, otp);
+    if (method === 'email') {
+      await this.otpService.sendOtpByEmail(user.email, otp);
+    } else {
+      await this.otpService.sendOtpByPhone(user.phoneNumber, otp);
+    }
+
+    return { message: 'OTP sent successfully' };
   }
 
-  return { message: 'OTP sent successfully' };
-}
+  async verifyOtp(pendingUserId: string, otp: string) {
+    const record = await this.prisma.otpVerification.findFirst({
+      where: {
+        userId: pendingUserId,
+        otp,
+        expiresAt: { gte: new Date() },
+        verifiedAt: null,
+      },
+    });
 
-async verifyOtp(pendingUserId: string, otp: string) {
-  const record = await this.prisma.otpVerification.findFirst({
-    where: {
-      userId: pendingUserId,
-      otp,
-      expiresAt: { gte: new Date() },
-      verifiedAt: null,
-    },
-  });
+    if (!record) {
+      throw new BadRequestException('Invalid or expired OTP');
+    }
 
-  if (!record) {
-    throw new BadRequestException('Invalid or expired OTP');
+    // Mark OTP as verified
+    await this.prisma.otpVerification.update({
+      where: { id: record.id },
+      data: { verifiedAt: new Date() },
+    });
+
+    // Fetch the pending user
+    const pending = await this.prisma.pendingUser.findUnique({
+      where: { id: pendingUserId },
+    });
+
+    if (!pending) {
+      throw new BadRequestException('Pending user not found');
+    }
+
+    // Create actual user
+    const user = await this.prisma.user.create({
+      data: {
+        fullName: pending.fullName,
+        email: pending.email,
+        phoneNumber: pending.phoneNumber,
+        password: pending.password,
+        // isVerified: true, // ✅ Optional: Set user as verified
+      },
+    });
+
+    // First, delete all OTPs linked to pendingUserId to avoid FK constraint issue
+    await this.prisma.otpVerification.deleteMany({
+      where: { userId: pendingUserId },
+    });
+
+    // Then delete the pending user
+    await this.prisma.pendingUser.delete({
+      where: { id: pendingUserId },
+    });
+
+    const tokenData = await this.signToken(user);
+
+    return {
+      status: 'verified',
+      message: 'OTP verified successfully. User registered.',
+      ...tokenData,
+    };
   }
-
-  // Mark OTP as verified
-  await this.prisma.otpVerification.update({
-    where: { id: record.id },
-    data: { verifiedAt: new Date() },
-  });
-
-  // Fetch the pending user
-  const pending = await this.prisma.pendingUser.findUnique({
-    where: { id: pendingUserId },
-  });
-
-  if (!pending) {
-    throw new BadRequestException('Pending user not found');
-  }
-
-  // Create actual user
-  const user = await this.prisma.user.create({
-    data: {
-      fullName: pending.fullName,
-      email: pending.email,
-      phoneNumber: pending.phoneNumber,
-      password: pending.password,
-      // isVerified: true, // ✅ Optional: Set user as verified
-    },
-  });
-
-  // First, delete all OTPs linked to pendingUserId to avoid FK constraint issue
-  await this.prisma.otpVerification.deleteMany({
-    where: { userId: pendingUserId },
-  });
-
-  // Then delete the pending user
-  await this.prisma.pendingUser.delete({
-    where: { id: pendingUserId },
-  });
-
-  const tokenData = await this.signToken(user);
-
-  return {
-    status: 'verified',
-    message: 'OTP verified successfully. User registered.',
-    ...tokenData,
-  };
-}
 
   async resendOtp(userId: string, method: 'email' | 'phone') {
     // Optional: Enforce 60-second delay

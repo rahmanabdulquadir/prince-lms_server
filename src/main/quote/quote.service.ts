@@ -15,11 +15,12 @@ export class QuoteService {
     });
   }
 
-  findAll() {
-    return this.prisma.quote.findMany({
-      orderBy: { createdAt: 'desc' },
-    });
-  }
+findAll(isSubscribed: boolean) {
+  return this.prisma.quote.findMany({
+    orderBy: { createdAt: 'desc' },
+    ...(isSubscribed ? {} : { take: 3 }),
+  });
+}
 
   findOne(id: string) {
     return this.prisma.quote.findUnique({ where: { id } });

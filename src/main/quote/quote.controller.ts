@@ -7,6 +7,7 @@ import {
   Body,
   UseGuards,
   Req,
+  Query,
 } from '@nestjs/common';
 import { QuoteService } from './quote.service';
 import { CreateQuoteDto } from './dto/create-quote.dto';
@@ -27,11 +28,19 @@ export class QuoteController {
   @ApiBearerAuth()
   @Get()
   @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: 'Get all quotes' })
-  findAll(@Req() req: Request) {
+  @ApiOperation({ summary: 'Get all quotes with pagination' })
+  findAll(
+    @Req() req: Request,
+    @Query('page') page = '1',
+    @Query('limit') limit = '10',
+  ) {
     const user = req as Request & { user?: { isSubscribed?: boolean } };
     const isSubscribed = user.user?.isSubscribed ?? false;
-    return this.quoteService.findAll(isSubscribed);
+
+    const pageNum = parseInt(page, 10) || 1;
+    const limitNum = parseInt(limit, 10) || 10;
+
+    return this.quoteService.findAll(isSubscribed, pageNum, limitNum);
   }
 
   @Get(':id')

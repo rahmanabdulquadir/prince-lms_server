@@ -11,7 +11,12 @@ import {
 } from '@nestjs/common';
 import { QuoteService } from './quote.service';
 import { CreateQuoteDto } from './dto/create-quote.dto';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @ApiTags('Quotes')
@@ -26,9 +31,11 @@ export class QuoteController {
   }
 
   @ApiBearerAuth()
-  @Get()
   @UseGuards(JwtAuthGuard)
+  @Get()
   @ApiOperation({ summary: 'Get all quotes with pagination' })
+  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
   findAll(
     @Req() req: Request,
     @Query('page') page = '1',
@@ -42,7 +49,7 @@ export class QuoteController {
 
     return this.quoteService.findAll(isSubscribed, pageNum, limitNum);
   }
-
+  
   @Get(':id')
   @ApiOperation({ summary: 'Get a single quote by ID' })
   findOne(@Param('id') id: string) {

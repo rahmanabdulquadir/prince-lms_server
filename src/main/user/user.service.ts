@@ -64,7 +64,7 @@ async getMe(userId: string) {
       updatedAt: true,
       subscriptions: {
         include: {
-          plan: true, // Include the full plan details
+          plan: true, 
         },
       },
     },

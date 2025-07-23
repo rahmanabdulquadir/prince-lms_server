@@ -18,12 +18,15 @@ import {
   ApiQuery,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { AdminGuard } from 'src/common/guard/AdminGuard';
 
 @ApiTags('Quotes')
 @Controller('quotes')
 export class QuoteController {
   constructor(private readonly quoteService: QuoteService) {}
 
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, AdminGuard)
   @Post()
   @ApiOperation({ summary: 'Create a new quote' })
   create(@Body() dto: CreateQuoteDto) {
@@ -49,7 +52,7 @@ export class QuoteController {
 
     return this.quoteService.findAll(isSubscribed, pageNum, limitNum);
   }
-  
+
   @Get(':id')
   @ApiOperation({ summary: 'Get a single quote by ID' })
   findOne(@Param('id') id: string) {

@@ -11,9 +11,17 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  async validate(payload: { sub: string; email: string }) {
-    // console.log('Decoded user in validate():', payload);
-    // return payload; // This will be available as req.user
-    return { id: payload.sub, email: payload.email };
+  async validate(payload: {
+    sub: string;
+    email: string;
+    role: string;
+    isSubscribed?: boolean;
+  }) {
+    return {
+      id: payload.sub,
+      email: payload.email,
+      role: payload.role, // ✅ This is required by AdminGuard
+      isSubscribed: payload.isSubscribed, // ✅ Optional: if needed in controller
+    };
   }
 }

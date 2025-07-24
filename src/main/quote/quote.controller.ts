@@ -45,27 +45,47 @@ export class QuoteController {
     @Query('limit') limit = '10',
   ) {
     const user = req as Request & {
-      user?: { id?: string; email?: string; role?: string; isSubscribed?: boolean };
+      user?: {
+        id?: string;
+        email?: string;
+        role?: string;
+        isSubscribed?: boolean;
+      };
     };
-  
+
     console.log('🔍 User Payload:', user.user);
-  
+
     const isSubscribed = user.user?.isSubscribed ?? false;
     const isAdmin = user.user?.role === 'ADMIN';
-  
+
     console.log(`👤 isSubscribed: ${isSubscribed}, isAdmin: ${isAdmin}`);
-  
+
     const pageNum = parseInt(page, 10) || 1;
     const limitNum = parseInt(limit, 10) || 10;
-  
+
     return this.quoteService.findAll(isSubscribed, isAdmin, pageNum, limitNum);
   }
-  
 
   @Get(':id')
   @ApiOperation({ summary: 'Get a single quote by ID' })
   findOne(@Param('id') id: string) {
     return this.quoteService.findOne(id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post(':id/save')
+  @ApiOperation({ summary: 'Save a quote to user’s profile' })
+  @ApiBearerAuth()
+  saveQuote(@Param('id') quoteId: string, @Req() req: any) {
+    return this.quoteService.saveQuote(quoteId, req.user.id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete(':id/unsave')
+  @ApiOperation({ summary: 'Unsave a quote from user’s profile' })
+  @ApiBearerAuth()
+  unsaveQuote(@Param('id') quoteId: string, @Req() req: any) {
+    return this.quoteService.unsaveQuote(quoteId, req.user.id);
   }
 
   @Delete(':id')

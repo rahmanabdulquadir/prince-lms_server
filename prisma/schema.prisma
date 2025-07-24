@@ -150,17 +150,6 @@ model FavoriteContent {
   @@unique([userId, contentId])
 }
 
-model SavedQuote {
-  id      String   @id @default(uuid())
-  userId  String
-  quoteId String
-  user    User     @relation(fields: [userId], references: [id])
-  quote   Quote    @relation(fields: [quoteId], references: [id])
-  savedAt DateTime @default(now())
-
-  @@unique([userId, quoteId])
-}
-
 model Plan {
   id            String         @id @default(uuid())
   name          String         @unique
@@ -215,6 +204,17 @@ model Quote {
   author     String
   createdAt  DateTime     @default(now())
   SavedQuote SavedQuote[]
+}
+
+model SavedQuote {
+  id      String   @id @default(uuid())
+  userId  String
+  quoteId String
+  user    User     @relation(fields: [userId], references: [id])
+  quote   Quote    @relation(fields: [quoteId], references: [id])
+  savedAt DateTime @default(now())
+
+  @@unique([userId, quoteId])
 }
 
 model FAQCategory {

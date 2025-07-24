@@ -33,4 +33,36 @@ export class QuoteService {
   remove(id: string) {
     return this.prisma.quote.delete({ where: { id } });
   }
+
+  async saveQuote(quoteId: string, userId: string) {
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        SavedQuotes: {
+          create: {
+            quote: { connect: { id: quoteId } },
+          },
+        },
+      },
+      include: { SavedQuotes: true },
+    });
+  }
+  
+  async unsaveQuote(quoteId: string, userId: string) {
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        SavedQuotes: {
+          delete: {
+            userId_quoteId: {
+              userId,
+              quoteId,
+            },
+          },
+        },
+      },
+      include: { SavedQuotes: true },
+    });
+  }
+  
 }

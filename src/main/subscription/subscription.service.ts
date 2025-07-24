@@ -67,71 +67,76 @@ export class SubscriptionService {
       throw new BadRequestException('Invalid Stripe webhook signature');
     }
 
-    if (event.type === 'checkout.session.completed') {
-      const session = event.data.object as Stripe.Checkout.Session;
+if (event.type === 'checkout.session.completed') {
+  const session = event.data.object as Stripe.Checkout.Session;
 
-      // ✅ Fix: Type-safe access to metadata
-      const metadata = session.metadata as {
-        planId: string;
-        userId: string;
-      } | null;
+  const metadata = session.metadata as { planId: string; userId: string } | null;
+  if (!metadata?.planId || !metadata?.userId) {
+    throw new BadRequestException('Missing metadata in session');
+  }
 
-      if (!metadata?.planId || !metadata?.userId) {
-        throw new BadRequestException('Missing metadata in session');
-      }
+  const { planId, userId } = metadata;
+  const amount = (session.amount_total ?? 0) / 100;
 
-      const { planId, userId } = metadata;
-      const amount = (session.amount_total ?? 0) / 100;
+  const plan = await this.prisma.plan.findUnique({ where: { id: planId } });
+  if (!plan) throw new NotFoundException('Plan not found');
 
-      const plan = await this.prisma.plan.findUnique({ where: { id: planId } });
-      if (!plan) throw new NotFoundException('Plan not found');
+  const user = await this.prisma.user.findUnique({ where: { id: userId } });
+  if (!user) throw new NotFoundException('User not found');
 
-      const durationDays = plan.planType === 'MONTHLY' ? 30 : 365;
+  const durationDays = plan.planType === 'MONTHLY' ? 30 : 365;
 
-      const sub = await this.prisma.subscription.create({
-        data: {
-          userId,
-          planId,
-          startDate: new Date(),
-          endDate: new Date(Date.now() + durationDays * 864e5),
-          payments: {
-            create: {
-              amount,
-              currency: 'USD',
-              status: PaymentStatus.SUCCESS, // ✅ Use enum value from Prisma
-              transactionId: session.payment_intent as string,
-            },
-          },
+  const sub = await this.prisma.subscription.create({
+    data: {
+      userId,
+      planId,
+      startDate: new Date(),
+      endDate: new Date(Date.now() + durationDays * 864e5),
+      payments: {
+        create: {
+          amount,
+          currency: 'USD',
+          status: PaymentStatus.SUCCESS,
+          transactionId: session.payment_intent as string,
         },
-      });
+      },
+    },
+  });
 
-      return sub;
-    }
+  // Update subscription flag only if needed
+  if (!user.isSubscribed) {
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { isSubscribed: true },
+    });
+  }
+
+  return sub;
+}
 
     return { received: true };
   }
 
   async findAllPayments() {
-  return this.prisma.payment.findMany({
-    include: {
-      subscription: {
-        include: {
-          user: {
-            select: {
-              id: true,
-              fullName: true,
-              email: true,
-              phoneNumber: true,
+    return this.prisma.payment.findMany({
+      include: {
+        subscription: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                fullName: true,
+                email: true,
+                phoneNumber: true,
+              },
             },
+            plan: true,
           },
-          plan: true,
         },
       },
-    },
-    orderBy: { createdAt: 'desc' },
-  });
-}
-
+      orderBy: { createdAt: 'desc' },
+    });
+  }
 
   async findSubscriptions(userId: string) {
     return this.prisma.subscription.findMany({

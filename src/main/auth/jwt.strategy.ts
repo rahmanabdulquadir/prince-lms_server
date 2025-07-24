@@ -17,6 +17,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     role: string;
     isSubscribed?: boolean;
   }) {
+    console.log('✅ Decoded JWT Payload:', payload);
     return {
       id: payload.sub,
       email: payload.email,

@@ -36,7 +36,6 @@ export class QuoteController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @Get()
-  @ApiBearerAuth()
   @ApiOperation({ summary: 'Get all quotes with pagination' })
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
@@ -46,17 +45,22 @@ export class QuoteController {
     @Query('limit') limit = '10',
   ) {
     const user = req as Request & {
-      user?: { isSubscribed?: boolean; role?: string };
+      user?: { id?: string; email?: string; role?: string; isSubscribed?: boolean };
     };
+  
+    console.log('🔍 User Payload:', user.user);
   
     const isSubscribed = user.user?.isSubscribed ?? false;
     const isAdmin = user.user?.role === 'ADMIN';
+  
+    console.log(`👤 isSubscribed: ${isSubscribed}, isAdmin: ${isAdmin}`);
   
     const pageNum = parseInt(page, 10) || 1;
     const limitNum = parseInt(limit, 10) || 10;
   
     return this.quoteService.findAll(isSubscribed, isAdmin, pageNum, limitNum);
   }
+  
 
   @Get(':id')
   @ApiOperation({ summary: 'Get a single quote by ID' })

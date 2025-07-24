@@ -15,10 +15,10 @@ export class QuoteService {
     });
   }
 
-  findAll(isSubscribed: boolean, page = 1, limit = 10) {
-    const take = isSubscribed ? limit : 3;
+  findAll(isSubscribed: boolean, isAdmin: boolean, page = 1, limit = 10) {
+    const take = isAdmin || isSubscribed ? limit : 3;
     const skip = (page - 1) * take;
-
+  
     return this.prisma.quote.findMany({
       take,
       skip,

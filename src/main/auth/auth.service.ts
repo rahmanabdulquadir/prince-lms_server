@@ -10,7 +10,10 @@ import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
-import { ResetPasswordDto, VerifyPasswordOtpDto } from './dto/reset-password.dto';
+import {
+  ResetPasswordDto,
+  VerifyPasswordOtpDto,
+} from './dto/reset-password.dto';
 import * as crypto from 'crypto';
 import { MailService } from '../mail/mail.service';
 import { ChangePasswordDto } from './dto/change-password.dto';
@@ -33,6 +36,7 @@ export class AuthService {
       sub: user.id,
       email: user.email,
       role: user.role,
+      isSubscribed: user.isSubscribed, // ✅ Add this!
     };
 
     const accessToken = await this.jwtService.signAsync(payload, {
@@ -137,11 +141,11 @@ export class AuthService {
     const user = await this.prisma.user.findUnique({
       where: { email: dto.email },
     });
-  
+
     if (!user) throw new NotFoundException('User not found');
-  
+
     const otp = this.otpService.generateOtp();
-  
+
     await this.prisma.passwordResetOtp.create({
       data: {
         userId: user.id,
@@ -150,10 +154,10 @@ export class AuthService {
         expiresAt: new Date(Date.now() + 5 * 60 * 1000), // 5 minutes
       },
     });
-  
+
     // ✅ Actually send the email now
     await this.otpService.sendOtpByEmail(dto.email, otp);
-  
+
     return { message: 'OTP sent to your email', userId: user.id };
   }
 

@@ -71,7 +71,7 @@ export class QuoteService {
   }
 
   async saveQuote(quoteId: string, userId: string) {
-    return this.prisma.user.update({
+    await this.prisma.user.update({
       where: { id: userId },
       data: {
         SavedQuotes: {
@@ -80,12 +80,21 @@ export class QuoteService {
           },
         },
       },
-      include: { SavedQuotes: true },
+    });
+
+    // Now fetch only the SavedQuotes to return
+    return this.prisma.savedQuote.findMany({
+      where: { userId },
+      select: {
+        id: true,
+        quoteId: true,
+        savedAt: true,
+      },
     });
   }
 
   async unsaveQuote(quoteId: string, userId: string) {
-    return this.prisma.user.update({
+    await this.prisma.user.update({
       where: { id: userId },
       data: {
         SavedQuotes: {
@@ -97,7 +106,16 @@ export class QuoteService {
           },
         },
       },
-      include: { SavedQuotes: true },
+    });
+
+    // Return updated SavedQuotes
+    return this.prisma.savedQuote.findMany({
+      where: { userId },
+      select: {
+        id: true,
+        quoteId: true,
+        savedAt: true,
+      },
     });
   }
 }

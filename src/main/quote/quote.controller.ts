@@ -52,18 +52,15 @@ export class QuoteController {
         isSubscribed?: boolean;
       };
     };
-
-    console.log('🔍 User Payload:', user.user);
-
+  
+    const userId = user.user?.id;
     const isSubscribed = user.user?.isSubscribed ?? false;
     const isAdmin = user.user?.role === 'ADMIN';
-
-    console.log(`👤 isSubscribed: ${isSubscribed}, isAdmin: ${isAdmin}`);
-
+  
     const pageNum = parseInt(page, 10) || 1;
     const limitNum = parseInt(limit, 10) || 10;
-
-    return this.quoteService.findAll(isSubscribed, isAdmin, pageNum, limitNum);
+  
+    return this.quoteService.findAll(isSubscribed, isAdmin, pageNum, limitNum, userId);
   }
 
   @Get(':id')

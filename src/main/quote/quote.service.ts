@@ -15,15 +15,51 @@ export class QuoteService {
     });
   }
 
-  findAll(isSubscribed: boolean, isAdmin: boolean, page = 1, limit = 10) {
+  async findAll(
+    isSubscribed: boolean,
+    isAdmin: boolean,
+    page = 1,
+    limit = 10,
+    userId?: string,
+  ) {
     const take = isAdmin || isSubscribed ? limit : 3;
     const skip = (page - 1) * take;
-  
-    return this.prisma.quote.findMany({
+
+    const quotes = await this.prisma.quote.findMany({
       take,
       skip,
       orderBy: { createdAt: 'desc' },
     });
+
+    let savedQuoteIds: string[] = [];
+
+    if (userId) {
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          SavedQuotes: {
+            select: {
+              quoteId: true, // ✅ Correct field
+            },
+          },
+        },
+      });
+
+      savedQuoteIds = user?.SavedQuotes.map((quote) => quote.quoteId) ?? []; // ✅ Corrected mapping
+    } else {
+      console.log('⚠️ No userId provided, skipping saved quotes check.');
+    }
+
+    const quotesWithIsSaved = quotes.map((quote) => {
+      const isSaved = savedQuoteIds.includes(quote.id); // ✅ Will now work correctly
+
+      return {
+        ...quote,
+        isSaved,
+      };
+    });
+
+    return quotesWithIsSaved;
   }
 
   findOne(id: string) {
@@ -47,7 +83,7 @@ export class QuoteService {
       include: { SavedQuotes: true },
     });
   }
-  
+
   async unsaveQuote(quoteId: string, userId: string) {
     return this.prisma.user.update({
       where: { id: userId },
@@ -64,5 +100,4 @@ export class QuoteService {
       include: { SavedQuotes: true },
     });
   }
-  
 }

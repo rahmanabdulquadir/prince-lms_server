@@ -71,6 +71,20 @@ export class QuoteService {
   }
 
   async saveQuote(quoteId: string, userId: string) {
+    const alreadySaved = await this.prisma.savedQuote.findUnique({
+      where: {
+        userId_quoteId: {
+          userId,
+          quoteId,
+        },
+      },
+    });
+
+    if (alreadySaved) {
+      return { message: 'Quote already saved' };
+      // throw new Error('Quote already saved');
+    }
+
     await this.prisma.user.update({
       where: { id: userId },
       data: {
@@ -82,17 +96,17 @@ export class QuoteService {
       },
     });
 
-    // Now fetch only the SavedQuotes to return
-    return this.prisma.savedQuote.findMany({
-      where: { userId },
-      select: {
-        id: true,
-        quoteId: true,
-        savedAt: true,
-      },
-    });
+    return {
+      SavedQuotes: await this.prisma.savedQuote.findMany({
+        where: { userId },
+        select: {
+          id: true,
+          quoteId: true,
+          savedAt: true,
+        },
+      }),
+    };
   }
-
   async unsaveQuote(quoteId: string, userId: string) {
     await this.prisma.user.update({
       where: { id: userId },

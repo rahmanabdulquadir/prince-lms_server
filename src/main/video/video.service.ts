@@ -1,3 +1,4 @@
+// src/video/video.service.ts
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateVideoDto } from './dto/create-video.dto';
@@ -10,9 +11,7 @@ import * as streamifier from 'streamifier';
 export class VideoService {
   constructor(private prisma: PrismaService) {}
 
-  private async uploadFileToCloudinary(
-    file: Express.Multer.File,
-  ): Promise<any> {
+  private async uploadFileToCloudinary(file: Express.Multer.File): Promise<any> {
     const resourceType = file.mimetype.startsWith('video/') ? 'video' : 'image';
 
     return new Promise((resolve, reject) => {
@@ -37,32 +36,37 @@ export class VideoService {
     thumbnailFile: Express.Multer.File,
   ) {
     try {
+      // Upload both video and thumbnail in parallel
       const [uploadedVideo, uploadedThumbnail] = await Promise.all([
         this.uploadFileToCloudinary(videoFile),
         this.uploadFileToCloudinary(thumbnailFile),
       ]);
-
+  
+      // Normalize tags input
       const parsedTags =
         typeof dto.tags === 'string'
           ? (dto.tags as string).split(',').map((tag) => tag.trim())
           : dto.tags;
-
+  
+      // Parse isFeatured safely to boolean
+      const isFeatured =
+        typeof dto.isFeatured === 'string'
+          ? dto.isFeatured.toLowerCase() === 'true'
+          : !!dto.isFeatured;
+  
+      // Save video record to database
       const video = await this.prisma.video.create({
         data: {
           title: dto.title,
           description: dto.description,
           thumbnailUrl: uploadedThumbnail.secure_url,
           videoUrl: uploadedVideo.secure_url,
-        //   duration:
-        //     typeof dto.duration === 'string'
-        //       ? parseInt(dto.duration, 10)
-        //       : dto.duration,
           tags: parsedTags,
-          isFeatured: dto.isFeatured ?? false,
-          publishedAt: new Date(dto.publishedAt),
+          isFeatured: isFeatured,
+          publishedAt: dto.publishedAt ? new Date(dto.publishedAt) : new Date(),
         },
       });
-
+  
       return video;
     } catch (error) {
       console.error('Cloudinary upload failed:', error);
@@ -71,6 +75,8 @@ export class VideoService {
       );
     }
   }
+  
+
 
   async findAllVideos(page = 1, limit = 10) {
     const skip = (page - 1) * limit;

@@ -17,36 +17,50 @@ import { ApiBody, ApiConsumes } from '@nestjs/swagger';
     constructor(private readonly videoService: VideoService) {}
   
     @Post()
-    @UseInterceptors(FileFieldsInterceptor([
-      { name: 'thumbnail', maxCount: 1 },
-      { name: 'video', maxCount: 1 },
-    ]))
+    @UseInterceptors(AnyFilesInterceptor())
     @ApiConsumes('multipart/form-data')
-    @ApiBody({ type: CreateVideoDto })
-    createVideo(
-      @UploadedFiles()
-      files: {
-        thumbnail?: Express.Multer.File[];
-        video?: Express.Multer.File[];
-      },
-      @Body() body: CreateVideoDto,
-    ) {
-      const thumbnail = files.thumbnail?.[0];
-      const video = files.video?.[0];
-  
-      // Example response
-      return {
-        message: 'Video uploaded successfully',
-        data: {
-          title: body.title,
-          description: body.description,
-          tags: body.tags,
-          isFeatured: body.isFeatured,
-          publishedAt: body.publishedAt,
-          thumbnail: thumbnail?.originalname,
-          video: video?.originalname,
+    @ApiBody({
+      description: 'Upload video and thumbnail files',
+      schema: {
+        type: 'object',
+        properties: {
+          title: { type: 'string' },
+          description: { type: 'string' },
+          tags: {
+            type: 'string',
+            example: 'react,tailwind,portfolio',
+            description: 'Comma-separated list of tags',
+          },
+          isFeatured: { type: 'boolean', example: true },
+          publishedAt: {
+            type: 'string',
+            format: 'date-time',
+            example: '2025-06-21T12:00:00Z',
+          },
+          video: {
+            type: 'string',
+            format: 'binary',
+          },
+          thumbnail: {
+            type: 'string',
+            format: 'binary',
+          },
         },
-      };
+        required: ['title', 'description', 'tags', 'publishedAt', 'video', 'thumbnail'],
+      },
+    })
+    async uploadVideo(
+      @Body() dto: CreateVideoDto,
+      @UploadedFiles() files: Array<Express.Multer.File>,
+    ) {
+      const videoFile = files.find((file) => file.fieldname === 'video');
+      const thumbnailFile = files.find((file) => file.fieldname === 'thumbnail');
+  
+      if (!videoFile || !thumbnailFile) {
+        throw new Error('Both video and thumbnail files are required');
+      }
+  
+      return this.videoService.create(dto, videoFile, thumbnailFile);
     }
   
     @Get()

@@ -121,7 +121,6 @@ model Video {
   description  String
   videoUrl     String
   thumbnailUrl String
-  duration     Int // in seconds
   publishedAt  DateTime
   tags         String[] // like ["Motivation", "Clarity"]
   isFeatured   Boolean  @default(false)

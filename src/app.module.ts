@@ -28,6 +28,7 @@ import { ConfigModule } from '@nestjs/config';
 import { NotificationModule } from './main/notification/notification.module';
 import { TwilioService } from './main/twilio/twilio.service';
 import { TwilioModule } from './main/twilio/twilio.module';
+import { VideoModule } from './main/video/video.module';
 
 @Module({
   imports: [
@@ -49,6 +50,7 @@ import { TwilioModule } from './main/twilio/twilio.module';
     UserModule,
     NotificationModule,
     TwilioModule,
+    VideoModule,
   ],
   controllers: [
     AppController,

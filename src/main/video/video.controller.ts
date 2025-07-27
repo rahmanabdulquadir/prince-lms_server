@@ -8,6 +8,8 @@ import {
   Query,
   Param,
   Delete,
+  UseGuards,
+  Req,
 } from '@nestjs/common';
 import {
   AnyFilesInterceptor,
@@ -15,7 +17,12 @@ import {
 } from '@nestjs/platform-express';
 import { VideoService } from './video.service';
 import { CreateVideoDto } from './dto/create-video.dto';
-import { ApiBody, ApiConsumes, ApiQuery } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiConsumes, ApiQuery } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+
+interface AuthenticatedRequest extends Request {
+  user: { id: string }; // Extend based on your JWT payload
+}
 
 @Controller('videos')
 export class VideoController {
@@ -79,7 +86,7 @@ export class VideoController {
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
   async getAll(@Query('page') page = '1', @Query('limit') limit = '10') {
-    return this.videoService.findAllVideos(+page, +limit);
+    return this.videoService.getAllVideos(+page, +limit);
   }
 
   @Get('featured')
@@ -100,5 +107,29 @@ export class VideoController {
   @Delete(':id')
   async deleteVideo(@Param('id') id: string) {
     return this.videoService.delete(id);
+  }
+
+  @Post(':id/like')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async like(
+    @Param('id') videoId: string,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    const userId = req.user.id;
+    return this.videoService.likeVideo(videoId, userId);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @Delete(':id/like')
+  async unlike(@Param('id') videoId: string, @Req() req: AuthenticatedRequest) {
+    const userId = req.user.id;
+    return this.videoService.unlikeVideo(videoId, userId);
+  }
+
+  @Get(':id/likes')
+  async getLikeCount(@Param('id') videoId: string) {
+    return this.videoService.getLikeCount(videoId);
   }
 }

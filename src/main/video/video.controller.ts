@@ -6,6 +6,7 @@ import {
   Body,
   Get,
   Query,
+  Param,
 } from '@nestjs/common';
 import {
   AnyFilesInterceptor,
@@ -88,5 +89,10 @@ export class VideoController {
   @Get('recent')
   getRecent() {
     return this.videoService.findRecentVideos(5);
+  }
+
+  @Get(':id/view')
+  async incrementView(@Param('id') id: string) {
+    return this.videoService.incrementViews(id);
   }
 }

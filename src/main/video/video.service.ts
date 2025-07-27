@@ -1,5 +1,9 @@
 // src/video/video.service.ts
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateVideoDto } from './dto/create-video.dto';
 import { Express } from 'express';
@@ -78,7 +82,7 @@ export class VideoService {
 
   async getAllVideos(page = 1, limit = 10) {
     const skip = (page - 1) * limit;
-  
+
     const [videos, total] = await this.prisma.$transaction([
       this.prisma.video.findMany({
         skip,
@@ -92,12 +96,12 @@ export class VideoService {
       }),
       this.prisma.video.count(),
     ]);
-  
+
     const formattedVideos = videos.map((video) => ({
       ...video,
       likeCount: video._count.likes,
     }));
-  
+
     return {
       data: formattedVideos,
       total,
@@ -107,17 +111,36 @@ export class VideoService {
   }
 
   async findFeaturedVideos() {
-    return this.prisma.video.findMany({
+    const videos = await this.prisma.video.findMany({
       where: { isFeatured: true },
-      // orderBy: { publishedAt: 'desc' },
+      include: {
+        _count: {
+          select: { likes: true },
+        },
+      },
     });
+
+    return videos.map((video) => ({
+      ...video,
+      likeCount: video._count.likes,
+    }));
   }
 
   async findRecentVideos(limit = 5) {
-    return this.prisma.video.findMany({
+    const videos = await this.prisma.video.findMany({
       take: limit,
-      // orderBy: { publishedAt: 'desc' },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        _count: {
+          select: { likes: true },
+        },
+      },
     });
+
+    return videos.map((video) => ({
+      ...video,
+      likeCount: video._count.likes,
+    }));
   }
 
   async incrementViews(videoId: string) {
@@ -187,11 +210,11 @@ export class VideoService {
         },
       },
     });
-  
+
     if (existingLike) {
       throw new BadRequestException('You already liked this video');
     }
-  
+
     // Create the like
     await this.prisma.like.create({
       data: {
@@ -199,18 +222,18 @@ export class VideoService {
         videoId,
       },
     });
-  
+
     // Optionally return updated count
     const likeCount = await this.prisma.like.count({
       where: { videoId },
     });
-  
+
     return {
       message: 'Video liked successfully',
       likeCount,
     };
   }
-  
+
   async unlikeVideo(videoId: string, userId: string) {
     // Check if like exists
     const existingLike = await this.prisma.like.findUnique({
@@ -221,11 +244,11 @@ export class VideoService {
         },
       },
     });
-  
+
     if (!existingLike) {
       throw new NotFoundException('Like does not exist');
     }
-  
+
     // Delete the like
     await this.prisma.like.delete({
       where: {
@@ -235,11 +258,11 @@ export class VideoService {
         },
       },
     });
-  
+
     const likeCount = await this.prisma.like.count({
       where: { videoId },
     });
-  
+
     return {
       message: 'Video unliked successfully',
       likeCount,

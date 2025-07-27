@@ -118,4 +118,46 @@ export class VideoService {
       },
     });
   }
+
+  async delete(videoId: string) {
+    try {
+      // Get the video from the database
+      const video = await this.prisma.video.findUnique({
+        where: { id: videoId },
+      });
+  
+      if (!video) {
+        throw new Error('Video not found');
+      }
+  
+      // Extract public_id from the Cloudinary URL (assuming you saved full URL)
+      const extractPublicId = (url: string) => {
+        const parts = url.split('/');
+        const publicIdWithExtension = parts[parts.length - 1];
+        const publicId = publicIdWithExtension.split('.')[0];
+        return parts.slice(parts.length - 2, parts.length - 1)[0] + '/' + publicId; // e.g., folder/filename
+      };
+  
+      const videoPublicId = extractPublicId(video.videoUrl);
+      const thumbnailPublicId = extractPublicId(video.thumbnailUrl);
+  
+      // Delete from Cloudinary
+      await Promise.all([
+        cloudinary.uploader.destroy(videoPublicId, { resource_type: 'video' }),
+        cloudinary.uploader.destroy(thumbnailPublicId, { resource_type: 'image' }),
+      ]);
+  
+      // Delete from DB
+      await this.prisma.video.delete({
+        where: { id: videoId },
+      });
+  
+      return { message: 'Video deleted successfully' };
+    } catch (error) {
+      console.error('Video deletion failed:', error);
+      throw new Error(
+        'Video deletion failed: ' + (error?.message || 'Unknown error'),
+      );
+    }
+  }
 }

@@ -275,4 +275,33 @@ export class VideoService {
 
     return { videoId, likeCount: count };
   }
+
+  async searchVideos(query: string) {
+    return this.prisma.video.findMany({
+      where: {
+        OR: [
+          {
+            title: {
+              contains: query,
+              mode: 'insensitive', // case-insensitive search
+            },
+          },
+          {
+            description: {
+              contains: query,
+              mode: 'insensitive',
+            },
+          },
+          {
+            tags: {
+              hasSome: [query], // searches if the tag array contains the keyword
+            },
+          },
+        ],
+      },
+      orderBy: {
+        createdAt: 'desc', // optional: show latest first
+      },
+    });
+  }
 }

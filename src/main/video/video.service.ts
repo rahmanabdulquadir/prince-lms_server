@@ -108,4 +108,15 @@ export class VideoService {
       // orderBy: { publishedAt: 'desc' },
     });
   }
+
+  async incrementViews(videoId: string) {
+    return this.prisma.video.update({
+      where: { id: videoId },
+      data: {
+        viewCount: {
+          increment: 1,
+        },
+      },
+    });
+  }
 }

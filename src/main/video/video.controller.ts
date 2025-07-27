@@ -124,4 +124,9 @@ export class VideoController {
   async getLikeCount(@Param('id') videoId: string) {
     return this.videoService.getLikeCount(videoId);
   }
+
+  @Get('search')
+  async searchVideos(@Query('query') query: string) {
+    return this.videoService.searchVideos(query);
+  }
 }

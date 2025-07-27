@@ -7,6 +7,7 @@ import {
   Get,
   Query,
   Param,
+  Delete,
 } from '@nestjs/common';
 import {
   AnyFilesInterceptor,
@@ -94,5 +95,10 @@ export class VideoController {
   @Get(':id/view-count')
   async incrementView(@Param('id') id: string) {
     return this.videoService.incrementViews(id);
+  }
+
+  @Delete(':id')
+  async deleteVideo(@Param('id') id: string) {
+    return this.videoService.delete(id);
   }
 }

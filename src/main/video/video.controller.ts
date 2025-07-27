@@ -112,17 +112,14 @@ export class VideoController {
   @Post(':id/like')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  async like(
-    @Param('id') videoId: string,
-    @Req() req: AuthenticatedRequest,
-  ) {
+  async like(@Param('id') videoId: string, @Req() req: AuthenticatedRequest) {
     const userId = req.user.id;
     return this.videoService.likeVideo(videoId, userId);
   }
 
-  @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard)
   @Delete(':id/like')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   async unlike(@Param('id') videoId: string, @Req() req: AuthenticatedRequest) {
     const userId = req.user.id;
     return this.videoService.unlikeVideo(videoId, userId);

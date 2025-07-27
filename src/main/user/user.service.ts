@@ -45,31 +45,36 @@ export class UserService {
     });
   }
 
-async getMe(userId: string) {
-  return this.prisma.user.findUnique({
-    where: { id: userId },
-    select: {
-      id: true,
-      fullName: true,
-      email: true,
-      phoneNumber: true,
-      photo: true,
-      role: true,
-      isSubscribed: true,
-      progresses: true,
-      FavoriteContents: true,
-      notifications: true,
-      SavedQuotes: true,
-      createdAt: true,
-      updatedAt: true,
-      subscriptions: {
-        include: {
-          plan: true, 
+  async getMe(userId: string) {
+    return this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        fullName: true,
+        email: true,
+        phoneNumber: true,
+        photo: true,
+        role: true,
+        isSubscribed: true,
+        progresses: true,
+        FavoriteContents: true,
+        likedVideos: {
+          include: {
+            video: true,
+          },
+        },
+        notifications: true,
+        SavedQuotes: true,
+        createdAt: true,
+        updatedAt: true,
+        subscriptions: {
+          include: {
+            plan: true,
+          },
         },
       },
-    },
-  });
-}
+    });
+  }
 
   async updateMe(
     userId: string,

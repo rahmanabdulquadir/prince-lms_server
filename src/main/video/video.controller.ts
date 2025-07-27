@@ -44,11 +44,6 @@ export class VideoController {
           description: 'Comma-separated list of tags',
         },
         isFeatured: { type: 'boolean', example: true },
-        publishedAt: {
-          type: 'string',
-          format: 'date-time',
-          example: '2025-06-21T12:00:00Z',
-        },
         video: {
           type: 'string',
           format: 'binary',

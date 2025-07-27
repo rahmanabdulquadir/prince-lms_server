@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -6,13 +7,14 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { CourseService } from './course.service';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ApiConsumes, ApiBody, ApiTags } from '@nestjs/swagger';
+import { ApiConsumes, ApiBody, ApiTags, ApiQuery } from '@nestjs/swagger';
 import { UpdateCourseDto } from './dto/update-course.dto';
 
 @ApiTags('Courses')
@@ -35,8 +37,10 @@ export class CourseController {
   }
 
   @Get()
-  findAll() {
-    return this.courseService.findAll();
+  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
+  findAll(@Query('page') page = '1', @Query('limit') limit = '10') {
+    return this.courseService.findAll(+page, +limit);
   }
 
   @Get(':id')
@@ -62,5 +66,11 @@ export class CourseController {
   @Delete(':id')
   delete(@Param('id') id: string) {
     return this.courseService.delete(id);
+  }
+
+  @Get('search')
+  search(@Query('query') query: string) {
+    console.log('🔔 Controller Hit. Query:', query); // <-- ADD THIS LOG
+    return this.courseService.searchCourses(query);
   }
 }

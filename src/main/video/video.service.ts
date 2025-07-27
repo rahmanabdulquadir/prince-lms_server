@@ -110,20 +110,39 @@ export class VideoService {
     };
   }
 
-  async findFeaturedVideos() {
+  async findFeaturedVideos(page = 1, limit = 10) {
+    const skip = (page - 1) * limit;
+  
+    // Get total featured videos count
+    const total = await this.prisma.video.count({
+      where: { isFeatured: true },
+    });
+  
+    // Get paginated videos
     const videos = await this.prisma.video.findMany({
       where: { isFeatured: true },
+      skip,
+      take: limit,
       include: {
         _count: {
           select: { likes: true },
         },
       },
     });
-
-    return videos.map((video) => ({
+  
+    // Format videos with like count
+    const formattedVideos = videos.map((video) => ({
       ...video,
       likeCount: video._count.likes,
     }));
+  
+    // Return with pagination info
+    return {
+      data: formattedVideos,
+      total,
+      page,
+      pageCount: Math.ceil(total / limit),
+    };
   }
 
   async findRecentVideos(limit = 5) {

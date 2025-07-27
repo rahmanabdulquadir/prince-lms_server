@@ -85,8 +85,10 @@ export class VideoController {
   }
 
   @Get('featured')
-  getFeatured() {
-    return this.videoService.findFeaturedVideos();
+  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
+  getFeatured(@Query('page') page = '1', @Query('limit') limit = '10') {
+    return this.videoService.findFeaturedVideos(+page, +limit);
   }
 
   @Get('recent')

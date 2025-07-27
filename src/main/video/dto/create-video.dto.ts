@@ -23,8 +23,4 @@ export class CreateVideoDto {
   @IsBoolean()
   @Transform(({ value }) => value === 'true')
   isFeatured?: boolean | string;
-
-  @ApiProperty({ example: '2025-07-25T12:00:00Z' })
-  @IsDateString()
-  publishedAt: string;
 }

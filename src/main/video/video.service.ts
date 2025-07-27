@@ -63,7 +63,6 @@ export class VideoService {
           videoUrl: uploadedVideo.secure_url,
           tags: parsedTags,
           isFeatured: isFeatured,
-          publishedAt: dto.publishedAt ? new Date(dto.publishedAt) : new Date(),
         },
       });
   
@@ -84,7 +83,6 @@ export class VideoService {
       this.prisma.video.findMany({
         skip,
         take: limit,
-        orderBy: { publishedAt: 'desc' },
       }),
       this.prisma.video.count(),
     ]);
@@ -100,14 +98,14 @@ export class VideoService {
   async findFeaturedVideos() {
     return this.prisma.video.findMany({
       where: { isFeatured: true },
-      orderBy: { publishedAt: 'desc' },
+      // orderBy: { publishedAt: 'desc' },
     });
   }
 
   async findRecentVideos(limit = 5) {
     return this.prisma.video.findMany({
       take: limit,
-      orderBy: { publishedAt: 'desc' },
+      // orderBy: { publishedAt: 'desc' },
     });
   }
 }

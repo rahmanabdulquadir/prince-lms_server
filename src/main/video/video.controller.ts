@@ -91,7 +91,7 @@ export class VideoController {
     return this.videoService.findRecentVideos(5);
   }
 
-  @Get(':id/view')
+  @Get(':id/view-count')
   async incrementView(@Param('id') id: string) {
     return this.videoService.incrementViews(id);
   }

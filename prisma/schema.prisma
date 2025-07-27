@@ -124,6 +124,7 @@ model Video {
   tags         String[] // like ["Motivation", "Clarity"]
   isFeatured   Boolean  @default(false)
   viewCount    Int      @default(0)
+  duration     Float?
   isPremium    Boolean  @default(false)
 
   createdAt DateTime @default(now())

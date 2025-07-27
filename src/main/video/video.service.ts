@@ -36,25 +36,23 @@ export class VideoService {
     thumbnailFile: Express.Multer.File,
   ) {
     try {
-      // Upload both video and thumbnail in parallel
       const [uploadedVideo, uploadedThumbnail] = await Promise.all([
         this.uploadFileToCloudinary(videoFile),
         this.uploadFileToCloudinary(thumbnailFile),
       ]);
   
-      // Normalize tags input
       const parsedTags =
         typeof dto.tags === 'string'
           ? (dto.tags as string).split(',').map((tag) => tag.trim())
           : dto.tags;
   
-      // Parse isFeatured safely to boolean
       const isFeatured =
         typeof dto.isFeatured === 'string'
           ? dto.isFeatured.toLowerCase() === 'true'
           : !!dto.isFeatured;
   
-      // Save video record to database
+      const duration = uploadedVideo?.duration || null; // 👈 Extract duration in seconds
+  
       const video = await this.prisma.video.create({
         data: {
           title: dto.title,
@@ -63,6 +61,7 @@ export class VideoService {
           videoUrl: uploadedVideo.secure_url,
           tags: parsedTags,
           isFeatured: isFeatured,
+          duration: duration, // 👈 Store in DB
         },
       });
   

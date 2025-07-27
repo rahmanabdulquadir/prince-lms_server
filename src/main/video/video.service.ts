@@ -11,7 +11,9 @@ import * as streamifier from 'streamifier';
 export class VideoService {
   constructor(private prisma: PrismaService) {}
 
-  private async uploadFileToCloudinary(file: Express.Multer.File): Promise<any> {
+  private async uploadFileToCloudinary(
+    file: Express.Multer.File,
+  ): Promise<any> {
     const resourceType = file.mimetype.startsWith('video/') ? 'video' : 'image';
 
     return new Promise((resolve, reject) => {
@@ -40,19 +42,19 @@ export class VideoService {
         this.uploadFileToCloudinary(videoFile),
         this.uploadFileToCloudinary(thumbnailFile),
       ]);
-  
+
       const parsedTags =
         typeof dto.tags === 'string'
           ? (dto.tags as string).split(',').map((tag) => tag.trim())
           : dto.tags;
-  
+
       const isFeatured =
         typeof dto.isFeatured === 'string'
           ? dto.isFeatured.toLowerCase() === 'true'
           : !!dto.isFeatured;
-  
+
       const duration = uploadedVideo?.duration || null; // 👈 Extract duration in seconds
-  
+
       const video = await this.prisma.video.create({
         data: {
           title: dto.title,
@@ -64,7 +66,7 @@ export class VideoService {
           duration: duration, // 👈 Store in DB
         },
       });
-  
+
       return video;
     } catch (error) {
       console.error('Cloudinary upload failed:', error);
@@ -73,8 +75,6 @@ export class VideoService {
       );
     }
   }
-  
-
 
   async findAllVideos(page = 1, limit = 10) {
     const skip = (page - 1) * limit;
@@ -125,33 +125,37 @@ export class VideoService {
       const video = await this.prisma.video.findUnique({
         where: { id: videoId },
       });
-  
+
       if (!video) {
         throw new Error('Video not found');
       }
-  
+
       // Extract public_id from the Cloudinary URL (assuming you saved full URL)
       const extractPublicId = (url: string) => {
         const parts = url.split('/');
         const publicIdWithExtension = parts[parts.length - 1];
         const publicId = publicIdWithExtension.split('.')[0];
-        return parts.slice(parts.length - 2, parts.length - 1)[0] + '/' + publicId; // e.g., folder/filename
+        return (
+          parts.slice(parts.length - 2, parts.length - 1)[0] + '/' + publicId
+        ); // e.g., folder/filename
       };
-  
+
       const videoPublicId = extractPublicId(video.videoUrl);
       const thumbnailPublicId = extractPublicId(video.thumbnailUrl);
-  
+
       // Delete from Cloudinary
       await Promise.all([
         cloudinary.uploader.destroy(videoPublicId, { resource_type: 'video' }),
-        cloudinary.uploader.destroy(thumbnailPublicId, { resource_type: 'image' }),
+        cloudinary.uploader.destroy(thumbnailPublicId, {
+          resource_type: 'image',
+        }),
       ]);
-  
+
       // Delete from DB
       await this.prisma.video.delete({
         where: { id: videoId },
       });
-  
+
       return { message: 'Video deleted successfully' };
     } catch (error) {
       console.error('Video deletion failed:', error);
@@ -159,5 +163,67 @@ export class VideoService {
         'Video deletion failed: ' + (error?.message || 'Unknown error'),
       );
     }
+  }
+
+  async likeVideo(videoId: string, userId: string) {
+    // Check if the user already liked the video
+    const existingLike = await this.prisma.like.findUnique({
+      where: {
+        userId_videoId: {
+          userId,
+          videoId,
+        },
+      },
+    });
+
+    if (existingLike) {
+      throw new Error('You already liked this video');
+    }
+
+    // Create the like
+    await this.prisma.like.create({
+      data: {
+        userId,
+        videoId,
+      },
+    });
+
+    return { message: 'Video liked successfully' };
+  }
+
+  async unlikeVideo(videoId: string, userId: string) {
+    // Check if like exists
+    const existingLike = await this.prisma.like.findUnique({
+      where: {
+        userId_videoId: {
+          userId,
+          videoId,
+        },
+      },
+    });
+
+    if (!existingLike) {
+      throw new Error('Like does not exist');
+    }
+
+    // Delete the like
+    await this.prisma.like.delete({
+      where: {
+        userId_videoId: {
+          userId,
+          videoId,
+        },
+      },
+    });
+
+    return { message: 'Video unliked successfully' };
+  }
+
+  async getLikeCount(videoId: string) {
+    const count = await this.prisma.like.count({
+      where: { videoId },
+    });
+
+    return { videoId, likeCount: count };
   }
 }

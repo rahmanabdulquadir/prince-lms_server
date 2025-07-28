@@ -116,33 +116,36 @@ export class VideoService {
       pageCount: Math.ceil(total / limit),
     };
   }
-  async findFeaturedVideos(page = 1, limit = 10) {
+  async findFeaturedVideos(userId: string, page = 1, limit = 10) {
     const skip = (page - 1) * limit;
-  4
-    // Get total featured videos count
-    const total = await this.prisma.video.count({
-      where: { isFeatured: true },
-    });
   
-    // Get paginated videos
-    const videos = await this.prisma.video.findMany({
-      where: { isFeatured: true },
-      skip,
-      take: limit,
-      include: {
-        _count: {
-          select: { likes: true },
+    const [videos, total, likedVideoIds] = await this.prisma.$transaction([
+      this.prisma.video.findMany({
+        where: { isFeatured: true },
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          _count: {
+            select: { likes: true },
+          },
         },
-      },
-    });
+      }),
+      this.prisma.video.count({ where: { isFeatured: true } }),
+      this.prisma.like.findMany({
+        where: { userId },
+        select: { videoId: true },
+      }),
+    ]);
   
-    // Format videos with like count
+    const likedIdsSet = new Set(likedVideoIds.map((l) => l.videoId));
+  
     const formattedVideos = videos.map((video) => ({
       ...video,
       likeCount: video._count.likes,
+      isLiked: likedIdsSet.has(video.id),
     }));
   
-    // Return with pagination info
     return {
       data: formattedVideos,
       total,
@@ -150,23 +153,32 @@ export class VideoService {
       pageCount: Math.ceil(total / limit),
     };
   }
-
-  async findRecentVideos(limit = 5) {
-    const videos = await this.prisma.video.findMany({
-      take: limit,
-      orderBy: { createdAt: 'desc' },
-      include: {
-        _count: {
-          select: { likes: true },
+  async findRecentVideos(userId: string, limit = 5) {
+    const [videos, likedVideoIds] = await this.prisma.$transaction([
+      this.prisma.video.findMany({
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          _count: {
+            select: { likes: true },
+          },
         },
-      },
-    });
-
+      }),
+      this.prisma.like.findMany({
+        where: { userId },
+        select: { videoId: true },
+      }),
+    ]);
+  
+    const likedIdsSet = new Set(likedVideoIds.map((l) => l.videoId));
+  
     return videos.map((video) => ({
       ...video,
       likeCount: video._count.likes,
+      isLiked: likedIdsSet.has(video.id),
     }));
   }
+  
 
   async incrementViews(videoId: string) {
     return this.prisma.video.update({

@@ -92,13 +92,19 @@ export class VideoController {
   @Get('featured')
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
-  getFeatured(@Query('page') page = '1', @Query('limit') limit = '10') {
-    return this.videoService.findFeaturedVideos(+page, +limit);
+  getFeatured(
+    @Query('page') page = '1',
+    @Query('limit') limit = '10',
+    @Req() req: any,
+  ) {
+    const userId = req.user?.id;
+    return this.videoService.findFeaturedVideos(userId, +page, +limit);
   }
-
+  
   @Get('recent')
-  getRecent() {
-    return this.videoService.findRecentVideos(5);
+  getRecent(@Req() req: any) {
+    const userId = req.user?.id;
+    return this.videoService.findRecentVideos(userId, 5);
   }
 
   @Get(':id/view-count')

@@ -102,9 +102,15 @@ export class VideoController {
   }
   
   @Get('recent')
-  getRecent(@Req() req: any) {
+  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 5 })
+  getRecent(
+    @Req() req: any,
+    @Query('page') page = '1',
+    @Query('limit') limit = '5',
+  ) {
     const userId = req.user?.id;
-    return this.videoService.findRecentVideos(userId, 5);
+    return this.videoService.findRecentVideos(userId, +page, +limit);
   }
 
   @Get(':id/view-count')

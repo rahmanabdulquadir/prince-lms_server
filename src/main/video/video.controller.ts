@@ -80,8 +80,13 @@ export class VideoController {
   @Get()
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
-  async getAll(@Query('page') page = '1', @Query('limit') limit = '10') {
-    return this.videoService.getAllVideos(+page, +limit);
+  async getAll(
+    @Query('page') page = '1',
+    @Query('limit') limit = '10',
+    @Req() req: any
+  ) {
+    const userId = req.user?.id;
+    return this.videoService.getAllVideos(userId, +page, +limit);
   }
 
   @Get('featured')

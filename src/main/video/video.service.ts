@@ -80,10 +80,10 @@ export class VideoService {
     }
   }
 
-  async getAllVideos(page = 1, limit = 10) {
+  async getAllVideos(userId: string, page = 1, limit = 10) {
     const skip = (page - 1) * limit;
-
-    const [videos, total] = await this.prisma.$transaction([
+  
+    const [videos, total, likedVideoIds] = await this.prisma.$transaction([
       this.prisma.video.findMany({
         skip,
         take: limit,
@@ -95,13 +95,20 @@ export class VideoService {
         },
       }),
       this.prisma.video.count(),
+      this.prisma.like.findMany({
+        where: { userId },
+        select: { videoId: true },
+      }),
     ]);
-
+  
+    const likedIdsSet = new Set(likedVideoIds.map((l) => l.videoId));
+  
     const formattedVideos = videos.map((video) => ({
       ...video,
       likeCount: video._count.likes,
+      isLiked: likedIdsSet.has(video.id),
     }));
-
+  
     return {
       data: formattedVideos,
       total,
@@ -109,10 +116,9 @@ export class VideoService {
       pageCount: Math.ceil(total / limit),
     };
   }
-
   async findFeaturedVideos(page = 1, limit = 10) {
     const skip = (page - 1) * limit;
-  
+  4
     // Get total featured videos count
     const total = await this.prisma.video.count({
       where: { isFeatured: true },

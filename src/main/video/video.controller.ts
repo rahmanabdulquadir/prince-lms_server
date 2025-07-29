@@ -148,8 +148,17 @@ export class VideoController {
     return this.videoService.getLikeCount(videoId);
   }
 
-  @Get('search')
-  async searchVideos(@Query('query') query: string) {
-    return this.videoService.searchVideos(query);
-  }
+@Get('search')
+@ApiQuery({ name: 'query', required: true })
+@ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+@ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
+searchVideos(
+  @Query('query') query: string,
+  @Query('page') page = '1',
+  @Query('limit') limit = '10',
+  @Req() req: any,
+) {
+  const userId = req.user?.id;
+  return this.videoService.searchVideos(query, userId, +page, +limit);
+}
 }

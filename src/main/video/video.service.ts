@@ -324,32 +324,55 @@ export class VideoService {
     return { videoId, likeCount: count };
   }
 
-  async searchVideos(query: string) {
-    return this.prisma.video.findMany({
+  async searchVideos(query: string, userId: string, page = 1, limit = 10) {
+  const skip = (page - 1) * limit;
+
+  const [videos, total, likedVideoIds] = await this.prisma.$transaction([
+    this.prisma.video.findMany({
       where: {
         OR: [
-          {
-            title: {
-              contains: query,
-              mode: 'insensitive', // case-insensitive search
-            },
-          },
-          {
-            description: {
-              contains: query,
-              mode: 'insensitive',
-            },
-          },
-          {
-            tags: {
-              hasSome: [query], // searches if the tag array contains the keyword
-            },
-          },
+          { title: { contains: query, mode: 'insensitive' } },
+          { description: { contains: query, mode: 'insensitive' } },
+          { tags: { has: query } },
         ],
       },
-      orderBy: {
-        createdAt: 'desc', // optional: show latest first
+      skip,
+      take: limit,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        _count: {
+          select: { likes: true },
+        },
       },
-    });
-  }
+    }),
+    this.prisma.video.count({
+      where: {
+        OR: [
+          { title: { contains: query, mode: 'insensitive' } },
+          { description: { contains: query, mode: 'insensitive' } },
+          { tags: { has: query } },
+        ],
+      },
+    }),
+    this.prisma.like.findMany({
+      where: { userId },
+      select: { videoId: true },
+    }),
+  ]);
+
+  const likedSet = new Set(likedVideoIds.map((item) => item.videoId));
+
+  const formattedVideos = videos.map((video) => ({
+    ...video,
+    likeCount: video._count.likes,
+    isLiked: likedSet.has(video.id),
+  }));
+
+  return {
+    data: formattedVideos,
+    total,
+    page,
+    pageCount: Math.ceil(total / limit),
+  };
+}
 }

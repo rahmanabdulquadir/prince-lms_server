@@ -347,4 +347,23 @@ export class AuthService {
 
     return this.sendOtp(userId, method);
   }
+
+   async generateAccessToken(user: any) {
+    const payload = {
+      sub: user.sub,
+      email: user.email,
+      role: user.role,
+      isSubscribed: user.isSubscribed ?? false,
+    };
+
+    const accessToken = await this.jwtService.signAsync(payload, {
+      secret: process.env.JWT_ACCESS_SECRET,
+      expiresIn: process.env.JWT_ACCESS_EXPIRES_IN || '1d',
+    });
+
+    return {
+      accessToken,
+      message: 'Access token re-generated after successful payment',
+    };
+  }
 }

@@ -83,13 +83,15 @@ export class VideoController {
   async getAll(
     @Query('page') page = '1',
     @Query('limit') limit = '10',
-    @Req() req: any
+    @Req() req: any,
   ) {
     const userId = req.user?.id;
     return this.videoService.getAllVideos(userId, +page, +limit);
   }
 
   @Get('featured')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
   getFeatured(
@@ -100,8 +102,10 @@ export class VideoController {
     const userId = req.user?.id;
     return this.videoService.findFeaturedVideos(userId, +page, +limit);
   }
-  
+
   @Get('recent')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 5 })
   getRecent(

@@ -1,4 +1,4 @@
-import { Body, Controller, Patch, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, HttpCode, Patch, Post, Req, UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { RegisterDto, SendOtpDto, VerifyOtpDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
@@ -7,6 +7,7 @@ import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto, VerifyPasswordOtpDto } from './dto/reset-password.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { JwtAuthGuard } from 'src/common/guard/jwt.guard';
+import { RefreshTokenGuard } from 'src/common/guard/refresh-token.guard';
 
 @Controller('auth')
 export class AuthController {
@@ -76,4 +77,11 @@ verifyPasswordOtp(@Body() dto: VerifyPasswordOtpDto) {
 resetPassword(@Body() dto: ResetPasswordDto) {
   return this.authService.resetPassword(dto);
 }
+
+@Post('refresh-token-after-payment')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(RefreshTokenGuard)
+  async refreshAfterPayment(@Req() req: any) {
+    return this.authService.generateAccessToken(req.user);
+  }
 }

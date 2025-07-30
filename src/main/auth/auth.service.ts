@@ -348,28 +348,27 @@ export class AuthService {
     return this.sendOtp(userId, method);
   }
 
-async generateAccessToken(user: any) {
-  console.log('⚙️ Generating new access token for user:', user);
-
-  const payload = {
-    sub: user.sub,
-    email: user.email,
-    role: user.role,
-    isSubscribed: user.isSubscribed ?? false,
-  };
-
-  console.log('📦 JWT Payload:', payload);
-
-  const accessToken = await this.jwtService.signAsync(payload, {
-    secret: process.env.JWT_ACCESS_SECRET,
-    expiresIn: process.env.JWT_ACCESS_EXPIRES_IN || '1d',
-  });
-
-  console.log('✅ Access token generated');
-
-  return {
-    accessToken,
-    message: 'Access token re-generated after successful payment',
-  };
-}
+  async generateAccessToken(user: any) {
+    // 🔁 Refetch fresh user data from DB
+    const freshUser = await this.prisma.user.findUnique({
+      where: { id: user.sub },
+    });
+  
+    const payload = {
+      sub: freshUser?.id,
+      email: freshUser?.email,
+      role: freshUser?.role,
+      isSubscribed: freshUser?.isSubscribed ?? false,
+    };
+  
+    const accessToken = await this.jwtService.signAsync(payload, {
+      secret: process.env.JWT_ACCESS_SECRET,
+      expiresIn: process.env.JWT_ACCESS_EXPIRES_IN || '1d',
+    });
+  
+    return {
+      accessToken,
+      message: 'Access token re-generated after successful payment',
+    };
+  }
 }

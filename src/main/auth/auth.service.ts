@@ -348,22 +348,28 @@ export class AuthService {
     return this.sendOtp(userId, method);
   }
 
-   async generateAccessToken(user: any) {
-    const payload = {
-      sub: user.sub,
-      email: user.email,
-      role: user.role,
-      isSubscribed: user.isSubscribed ?? false,
-    };
+async generateAccessToken(user: any) {
+  console.log('⚙️ Generating new access token for user:', user);
 
-    const accessToken = await this.jwtService.signAsync(payload, {
-      secret: process.env.JWT_ACCESS_SECRET,
-      expiresIn: process.env.JWT_ACCESS_EXPIRES_IN || '1d',
-    });
+  const payload = {
+    sub: user.sub,
+    email: user.email,
+    role: user.role,
+    isSubscribed: user.isSubscribed ?? false,
+  };
 
-    return {
-      accessToken,
-      message: 'Access token re-generated after successful payment',
-    };
-  }
+  console.log('📦 JWT Payload:', payload);
+
+  const accessToken = await this.jwtService.signAsync(payload, {
+    secret: process.env.JWT_ACCESS_SECRET,
+    expiresIn: process.env.JWT_ACCESS_EXPIRES_IN || '1d',
+  });
+
+  console.log('✅ Access token generated');
+
+  return {
+    accessToken,
+    message: 'Access token re-generated after successful payment',
+  };
+}
 }

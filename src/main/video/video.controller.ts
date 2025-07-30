@@ -10,6 +10,8 @@ import {
   Delete,
   UseGuards,
   Req,
+  Patch,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import {
   AnyFilesInterceptor,
@@ -17,8 +19,9 @@ import {
 } from '@nestjs/platform-express';
 import { VideoService } from './video.service';
 import { CreateVideoDto } from './dto/create-video.dto';
-import { ApiBearerAuth, ApiBody, ApiConsumes, ApiQuery } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiParam, ApiQuery, ApiResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { UpdateVideoDto } from './dto/update-video.dto';
 
 interface AuthenticatedRequest extends Request {
   user: { id: string }; // Extend based on your JWT payload
@@ -160,5 +163,16 @@ searchVideos(
 ) {
   const userId = req.user?.id;
   return this.videoService.searchVideos(query, userId, +page, +limit);
+}
+
+@Patch(':id')
+@ApiOperation({ summary: 'Update a video by ID' })
+@ApiParam({ name: 'id', required: true, description: 'UUID of the video' })
+@ApiResponse({ status: 200, description: 'Video updated successfully' })
+async updateVideo(
+  @Param('id', ParseUUIDPipe) id: string,
+  @Body() dto: UpdateVideoDto,
+) {
+  return this.videoService.updateVideo(id, dto);
 }
 }

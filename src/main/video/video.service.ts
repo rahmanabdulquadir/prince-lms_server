@@ -118,25 +118,45 @@ export class VideoService {
     };
   }
 
-  async updateVideo(id: string, dto: UpdateVideoDto) {
-    const existing = await this.prisma.video.findUnique({
-      where: { id },
-    });
-
+  async updateVideo(
+    id: string,
+    dto: UpdateVideoDto & { videoUrl?: string; thumbnailUrl?: string }
+  ) {
+    const existing = await this.prisma.video.findUnique({ where: { id } });
+  
     if (!existing) {
       throw new NotFoundException('Video not found');
     }
-
+  
+    const parsedTags =
+      typeof dto.tags === 'string'
+        ? dto.tags.split(',').map(tag => tag.trim())
+        : dto.tags ?? existing.tags;
+  
+    const isFeatured =
+      typeof dto.isFeatured === 'string'
+        ? dto.isFeatured.toLowerCase() === 'true'
+        : dto.isFeatured ?? existing.isFeatured;
+  
     const updated = await this.prisma.video.update({
       where: { id },
-      data: { ...dto },
+      data: {
+        title: dto.title ?? existing.title,
+        description: dto.description ?? existing.description,
+        thumbnailUrl: dto.thumbnailUrl ?? existing.thumbnailUrl,
+        videoUrl: dto.videoUrl ?? existing.videoUrl,
+        tags: parsedTags,
+        isFeatured: isFeatured,
+        duration: dto.duration !== undefined ? Number(dto.duration) : existing.duration,
+      },
     });
-
+  
     return {
       message: 'Video updated successfully',
       data: updated,
     };
   }
+  
   async findFeaturedVideos(userId: string, page = 1, limit = 10) {
     const skip = (page - 1) * limit;
 

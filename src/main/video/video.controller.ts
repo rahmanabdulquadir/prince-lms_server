@@ -12,16 +12,24 @@ import {
   Req,
   Patch,
   ParseUUIDPipe,
+  UploadedFile,
+  NotFoundException,
 } from '@nestjs/common';
 import {
   AnyFilesInterceptor,
   FileFieldsInterceptor,
+  FileInterceptor,
+  FilesInterceptor,
 } from '@nestjs/platform-express';
 import { VideoService } from './video.service';
 import { CreateVideoDto } from './dto/create-video.dto';
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiParam, ApiQuery, ApiResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { UpdateVideoDto } from './dto/update-video.dto';
+import { diskStorage } from 'multer';
+import { extname } from 'path';
+import { UpdateVideoDtoWithFile } from './dto/update-video-with-file.dto';
+
 
 interface AuthenticatedRequest extends Request {
   user: { id: string }; // Extend based on your JWT payload
@@ -166,13 +174,48 @@ searchVideos(
 }
 
 @Patch(':id')
-@ApiOperation({ summary: 'Update a video by ID' })
-@ApiParam({ name: 'id', required: true, description: 'UUID of the video' })
-@ApiResponse({ status: 200, description: 'Video updated successfully' })
+@UseInterceptors(
+  FileFieldsInterceptor(
+    [
+      { name: 'video', maxCount: 1 },
+      { name: 'thumbnail', maxCount: 1 },
+    ],
+    {
+      storage: diskStorage({
+        destination: (req, file, cb) => {
+          const folder = file.fieldname === 'video' ? './uploads/videos' : './uploads/thumbnails';
+          cb(null, folder);
+        },
+        filename: (req, file, cb) => {
+          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+          cb(null, `${file.fieldname}-${uniqueSuffix}${extname(file.originalname)}`);
+        },
+      }),
+    },
+  ),
+)
+
+@ApiConsumes('multipart/form-data')
+@ApiBody({
+  description: 'Update video and/or thumbnail',
+  type: UpdateVideoDtoWithFile,
+})
+@ApiParam({ name: 'id', description: 'Video ID' })
 async updateVideo(
-  @Param('id', ParseUUIDPipe) id: string,
-  @Body() dto: UpdateVideoDto,
+  @Param('id') id: string,
+  @UploadedFiles() files: { video?: Express.Multer.File[]; thumbnail?: Express.Multer.File[] },
+  @Body() body: UpdateVideoDto,
 ) {
-  return this.videoService.updateVideo(id, dto);
+  const videoFile = files.video?.[0];
+  const thumbnailFile = files.thumbnail?.[0];
+
+  const videoUrl = videoFile ? `/uploads/videos/${videoFile.filename}` : undefined;
+  const thumbnailUrl = thumbnailFile ? `/uploads/thumbnails/${thumbnailFile.filename}` : undefined;
+
+  return this.videoService.updateVideo(id, {
+    ...body,
+    videoUrl,
+    thumbnailUrl,
+  });
 }
 }

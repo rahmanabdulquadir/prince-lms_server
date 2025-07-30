@@ -10,6 +10,7 @@ import { Express } from 'express';
 import { v2 as cloudinary } from 'cloudinary';
 import '../../config/cloudinary.config';
 import * as streamifier from 'streamifier';
+import { UpdateVideoDto } from './dto/update-video.dto';
 
 @Injectable()
 export class VideoService {
@@ -67,7 +68,7 @@ export class VideoService {
           videoUrl: uploadedVideo.secure_url,
           tags: parsedTags,
           isFeatured: isFeatured,
-          duration: duration, 
+          duration: duration,
         },
       });
 
@@ -82,7 +83,7 @@ export class VideoService {
 
   async getAllVideos(userId: string, page = 1, limit = 10) {
     const skip = (page - 1) * limit;
-  
+
     const [videos, total, likedVideoIds] = await this.prisma.$transaction([
       this.prisma.video.findMany({
         skip,
@@ -100,15 +101,15 @@ export class VideoService {
         select: { videoId: true },
       }),
     ]);
-  
+
     const likedIdsSet = new Set(likedVideoIds.map((l) => l.videoId));
-  
+
     const formattedVideos = videos.map((video) => ({
       ...video,
       likeCount: video._count.likes,
       isLiked: likedIdsSet.has(video.id),
     }));
-  
+
     return {
       data: formattedVideos,
       total,
@@ -116,9 +117,29 @@ export class VideoService {
       pageCount: Math.ceil(total / limit),
     };
   }
+
+  async updateVideo(id: string, dto: UpdateVideoDto) {
+    const existing = await this.prisma.video.findUnique({
+      where: { id },
+    });
+
+    if (!existing) {
+      throw new NotFoundException('Video not found');
+    }
+
+    const updated = await this.prisma.video.update({
+      where: { id },
+      data: { ...dto },
+    });
+
+    return {
+      message: 'Video updated successfully',
+      data: updated,
+    };
+  }
   async findFeaturedVideos(userId: string, page = 1, limit = 10) {
     const skip = (page - 1) * limit;
-  
+
     const [videos, total, likedVideoIds] = await this.prisma.$transaction([
       this.prisma.video.findMany({
         where: { isFeatured: true },
@@ -137,15 +158,15 @@ export class VideoService {
         select: { videoId: true },
       }),
     ]);
-  
+
     const likedIdsSet = new Set(likedVideoIds.map((l) => l.videoId));
-  
+
     const formattedVideos = videos.map((video) => ({
       ...video,
       likeCount: video._count.likes,
       isLiked: likedIdsSet.has(video.id),
     }));
-  
+
     return {
       data: formattedVideos,
       total,
@@ -155,7 +176,7 @@ export class VideoService {
   }
   async findRecentVideos(userId: string, page = 1, limit = 5) {
     const skip = (page - 1) * limit;
-  
+
     const [videos, total, likedVideoIds] = await this.prisma.$transaction([
       this.prisma.video.findMany({
         skip,
@@ -173,15 +194,15 @@ export class VideoService {
         select: { videoId: true },
       }),
     ]);
-  
+
     const likedIdsSet = new Set(likedVideoIds.map((l) => l.videoId));
-  
+
     const formattedVideos = videos.map((video) => ({
       ...video,
       likeCount: video._count.likes,
       isLiked: likedIdsSet.has(video.id),
     }));
-  
+
     return {
       data: formattedVideos,
       total,
@@ -189,7 +210,6 @@ export class VideoService {
       pageCount: Math.ceil(total / limit),
     };
   }
-  
 
   async incrementViews(videoId: string) {
     return this.prisma.video.update({
@@ -202,62 +222,62 @@ export class VideoService {
     });
   }
 
-async delete(videoId: string) {
-  try {
-    // Get the video from the database
-    const video = await this.prisma.video.findUnique({
-      where: { id: videoId },
-    });
+  async delete(videoId: string) {
+    try {
+      // Get the video from the database
+      const video = await this.prisma.video.findUnique({
+        where: { id: videoId },
+      });
 
-    if (!video) {
-      throw new Error('Video not found');
+      if (!video) {
+        throw new Error('Video not found');
+      }
+
+      // Extract public_id from the Cloudinary URL (assuming you saved full URL)
+      const extractPublicId = (url: string) => {
+        const parts = url.split('/');
+        const publicIdWithExtension = parts[parts.length - 1];
+        const publicId = publicIdWithExtension.split('.')[0];
+        return (
+          parts.slice(parts.length - 2, parts.length - 1)[0] + '/' + publicId
+        ); // e.g., folder/filename
+      };
+
+      const videoPublicId = extractPublicId(video.videoUrl);
+      const thumbnailPublicId = extractPublicId(video.thumbnailUrl);
+
+      // Delete from Cloudinary
+      await Promise.all([
+        cloudinary.uploader.destroy(videoPublicId, { resource_type: 'video' }),
+        cloudinary.uploader.destroy(thumbnailPublicId, {
+          resource_type: 'image',
+        }),
+      ]);
+
+      // Step 1: Delete related likes to prevent foreign key constraint error
+      await this.prisma.like.deleteMany({
+        where: {
+          videoId,
+        },
+      });
+
+      // Step 2: (Optional) Delete other related data like comments or bookmarks here
+      // await this.prisma.comment.deleteMany({ where: { videoId } });
+      // await this.prisma.bookmark.deleteMany({ where: { videoId } });
+
+      // Step 3: Delete the video from DB
+      await this.prisma.video.delete({
+        where: { id: videoId },
+      });
+
+      return { message: 'Video deleted successfully' };
+    } catch (error) {
+      console.error('Video deletion failed:', error);
+      throw new Error(
+        'Video deletion failed: ' + (error?.message || 'Unknown error'),
+      );
     }
-
-    // Extract public_id from the Cloudinary URL (assuming you saved full URL)
-    const extractPublicId = (url: string) => {
-      const parts = url.split('/');
-      const publicIdWithExtension = parts[parts.length - 1];
-      const publicId = publicIdWithExtension.split('.')[0];
-      return (
-        parts.slice(parts.length - 2, parts.length - 1)[0] + '/' + publicId
-      ); // e.g., folder/filename
-    };
-
-    const videoPublicId = extractPublicId(video.videoUrl);
-    const thumbnailPublicId = extractPublicId(video.thumbnailUrl);
-
-    // Delete from Cloudinary
-    await Promise.all([
-      cloudinary.uploader.destroy(videoPublicId, { resource_type: 'video' }),
-      cloudinary.uploader.destroy(thumbnailPublicId, {
-        resource_type: 'image',
-      }),
-    ]);
-
-    // Step 1: Delete related likes to prevent foreign key constraint error
-    await this.prisma.like.deleteMany({
-      where: {
-        videoId,
-      },
-    });
-
-    // Step 2: (Optional) Delete other related data like comments or bookmarks here
-    // await this.prisma.comment.deleteMany({ where: { videoId } });
-    // await this.prisma.bookmark.deleteMany({ where: { videoId } });
-
-    // Step 3: Delete the video from DB
-    await this.prisma.video.delete({
-      where: { id: videoId },
-    });
-
-    return { message: 'Video deleted successfully' };
-  } catch (error) {
-    console.error('Video deletion failed:', error);
-    throw new Error(
-      'Video deletion failed: ' + (error?.message || 'Unknown error'),
-    );
   }
-}
 
   async likeVideo(videoId: string, userId: string) {
     // Check if the user already liked the video
@@ -336,54 +356,54 @@ async delete(videoId: string) {
   }
 
   async searchVideos(query: string, userId: string, page = 1, limit = 10) {
-  const skip = (page - 1) * limit;
+    const skip = (page - 1) * limit;
 
-  const [videos, total, likedVideoIds] = await this.prisma.$transaction([
-    this.prisma.video.findMany({
-      where: {
-        OR: [
-          { title: { contains: query, mode: 'insensitive' } },
-          { description: { contains: query, mode: 'insensitive' } },
-          { tags: { has: query } },
-        ],
-      },
-      skip,
-      take: limit,
-      orderBy: { createdAt: 'desc' },
-      include: {
-        _count: {
-          select: { likes: true },
+    const [videos, total, likedVideoIds] = await this.prisma.$transaction([
+      this.prisma.video.findMany({
+        where: {
+          OR: [
+            { title: { contains: query, mode: 'insensitive' } },
+            { description: { contains: query, mode: 'insensitive' } },
+            { tags: { has: query } },
+          ],
         },
-      },
-    }),
-    this.prisma.video.count({
-      where: {
-        OR: [
-          { title: { contains: query, mode: 'insensitive' } },
-          { description: { contains: query, mode: 'insensitive' } },
-          { tags: { has: query } },
-        ],
-      },
-    }),
-    this.prisma.like.findMany({
-      where: { userId },
-      select: { videoId: true },
-    }),
-  ]);
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          _count: {
+            select: { likes: true },
+          },
+        },
+      }),
+      this.prisma.video.count({
+        where: {
+          OR: [
+            { title: { contains: query, mode: 'insensitive' } },
+            { description: { contains: query, mode: 'insensitive' } },
+            { tags: { has: query } },
+          ],
+        },
+      }),
+      this.prisma.like.findMany({
+        where: { userId },
+        select: { videoId: true },
+      }),
+    ]);
 
-  const likedSet = new Set(likedVideoIds.map((item) => item.videoId));
+    const likedSet = new Set(likedVideoIds.map((item) => item.videoId));
 
-  const formattedVideos = videos.map((video) => ({
-    ...video,
-    likeCount: video._count.likes,
-    isLiked: likedSet.has(video.id),
-  }));
+    const formattedVideos = videos.map((video) => ({
+      ...video,
+      likeCount: video._count.likes,
+      isLiked: likedSet.has(video.id),
+    }));
 
-  return {
-    data: formattedVideos,
-    total,
-    page,
-    pageCount: Math.ceil(total / limit),
-  };
-}
+    return {
+      data: formattedVideos,
+      total,
+      page,
+      pageCount: Math.ceil(total / limit),
+    };
+  }
 }

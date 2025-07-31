@@ -8,14 +8,23 @@ import {
   Patch,
   Post,
   Query,
+  Req,
   UploadedFile,
+  UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { CourseService } from './course.service';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ApiConsumes, ApiBody, ApiTags, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiConsumes,
+  ApiBody,
+  ApiTags,
+  ApiQuery,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { UpdateCourseDto } from './dto/update-course.dto';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @ApiTags('Courses')
 @Controller('courses')
@@ -36,12 +45,19 @@ export class CourseController {
     return this.courseService.create(createCourseDto, file);
   }
 
-  @Get()
-  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
-  @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
-  findAll(@Query('page') page = '1', @Query('limit') limit = '10') {
-    return this.courseService.findAll(+page, +limit);
-  }
+@Get()
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
+@ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+@ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
+findAll(
+  @Query('page') page = '1',
+  @Query('limit') limit = '10',
+  @Req() req: any // to get req.user from JWT
+) {
+  const user = req.user;
+  return this.courseService.findAll(user, +page, +limit);
+}
 
   @Get(':id')
   findOne(@Param('id') id: string) {

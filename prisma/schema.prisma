@@ -103,6 +103,7 @@ model Content {
   // duration    Int
   description String?
   viewCount   Int?
+  duration    String?
   tags        String[]
 
   moduleId String
@@ -113,6 +114,23 @@ model Content {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Progress {
+  id          String   @id @default(uuid())
+  percentage  Int      @default(0)
+  userId      String
+  courseId    String
+  contentId   String?
+  isCompleted Boolean  @default(false)
+  user        User     @relation(fields: [userId], references: [id])
+  course      Course   @relation(fields: [courseId], references: [id])
+  content     Content? @relation(fields: [contentId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, contentId]) // One progress per user per content
 }
 
 model Video {
@@ -169,23 +187,6 @@ model Notification {
   message   String
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
-}
-
-model Progress {
-  id          String   @id @default(uuid())
-  percentage  Int      @default(0)
-  userId      String
-  courseId    String
-  contentId   String?
-  isCompleted Boolean  @default(false)
-  user        User     @relation(fields: [userId], references: [id])
-  course      Course   @relation(fields: [courseId], references: [id])
-  content     Content? @relation(fields: [contentId], references: [id])
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([userId, contentId]) // One progress per user per content
 }
 
 model FavoriteContent {

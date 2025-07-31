@@ -6,6 +6,7 @@ import { v2 as cloudinary } from 'cloudinary';
 import * as streamifier from 'streamifier';
 import '../../config/cloudinary.config';
 import { UpdateCourseDto } from './dto/update-course.dto';
+import { User } from '@prisma/client';
 
 @Injectable()
 export class CourseService {
@@ -55,12 +56,20 @@ async create(dto: CreateCourseDto, file?: Express.Multer.File) {
   return this.prisma.course.create({ data });
 }
 
-async findAll(page = 1, limit = 10) {
+async findAll(user: User, page = 1, limit = 10) {
   const skip = (page - 1) * limit;
 
-  const total = await this.prisma.course.count();
+  // Build filter based on subscription status
+  const filter = user.isSubscribed
+    ? {} // if subscribed, see all (paid + free)
+    : { isPaid: false }; // if not subscribed, see only free
+
+  const total = await this.prisma.course.count({
+    where: filter,
+  });
 
   const courses = await this.prisma.course.findMany({
+    where: filter,
     skip,
     take: limit,
     include: { modules: true },

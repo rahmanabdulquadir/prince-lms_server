@@ -46,10 +46,10 @@ export class ContentService {
 
       const data = {
         title: dto.title,
-        duration:
-          typeof dto.duration === 'string'
-            ? parseInt(dto.duration, 10)
-            : dto.duration,
+        // duration:
+        //   typeof dto.duration === 'string'
+        //     ? parseInt(dto.duration, 10)
+        //     : dto.duration,
         description: dto.description,
         tags: parsedTags,
         moduleId: dto.moduleId,

@@ -14,10 +14,10 @@ export class CreateContentDto {
   })
   file: any; // Will be handled by interceptor, not validated here
 
-  @ApiProperty({ example: 120, description: 'Duration of the content in seconds' })
-  @IsInt()
-  @Type(() => Number)
-  duration: number;
+  // @ApiProperty({ example: 120, description: 'Duration of the content in seconds' })
+  // @IsInt()
+  // @Type(() => Number)
+  // duration: number;
 
   @ApiProperty({
     example: 'A beginner-friendly introduction to NestJS',

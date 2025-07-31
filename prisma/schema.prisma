@@ -100,7 +100,7 @@ model Content {
   id          String   @id @default(uuid())
   title       String
   url         String
-  duration    Int
+  // duration    Int
   description String?
   viewCount   Int?
   tags        String[]

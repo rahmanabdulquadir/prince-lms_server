@@ -59,17 +59,9 @@ async create(dto: CreateCourseDto, file?: Express.Multer.File) {
 async findAll(user: User, page = 1, limit = 10) {
   const skip = (page - 1) * limit;
 
-  // Build filter based on subscription status
-  const filter = user.isSubscribed
-    ? {} // if subscribed, see all (paid + free)
-    : { isPaid: false }; // if not subscribed, see only free
-
-  const total = await this.prisma.course.count({
-    where: filter,
-  });
+  const total = await this.prisma.course.count(); // no filter
 
   const courses = await this.prisma.course.findMany({
-    where: filter,
     skip,
     take: limit,
     include: { modules: true },

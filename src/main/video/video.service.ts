@@ -118,45 +118,61 @@ export class VideoService {
     };
   }
 
-  async updateVideo(
+  async update(
     id: string,
-    dto: UpdateVideoDto & { videoUrl?: string; thumbnailUrl?: string }
+    dto: UpdateVideoDto,
+    videoFile?: Express.Multer.File,
+    thumbnailFile?: Express.Multer.File,
   ) {
-    const existing = await this.prisma.video.findUnique({ where: { id } });
-  
-    if (!existing) {
+    const existingVideo = await this.prisma.video.findUnique({ where: { id } });
+    if (!existingVideo) {
       throw new NotFoundException('Video not found');
     }
-  
+
+    let videoUrl = existingVideo.videoUrl;
+    let thumbnailUrl = existingVideo.thumbnailUrl;
+    let duration = existingVideo.duration;
+
+    if (videoFile) {
+      const uploadedVideo = await this.uploadFileToCloudinary(videoFile);
+      videoUrl = uploadedVideo.secure_url;
+      duration = uploadedVideo.duration;
+    }
+
+    if (thumbnailFile) {
+      const uploadedThumb = await this.uploadFileToCloudinary(thumbnailFile);
+      thumbnailUrl = uploadedThumb.secure_url;
+    }
+
     const parsedTags =
       typeof dto.tags === 'string'
-        ? dto.tags.split(',').map(tag => tag.trim())
-        : dto.tags ?? existing.tags;
-  
-    const isFeatured =
-      typeof dto.isFeatured === 'string'
-        ? dto.isFeatured.toLowerCase() === 'true'
-        : dto.isFeatured ?? existing.isFeatured;
-  
-    const updated = await this.prisma.video.update({
+        ? dto.tags.split(',').map((tag) => tag.trim())
+        : dto.tags;
+    let isFeatured: boolean | undefined;
+
+    if (dto.isFeatured !== undefined) {
+      isFeatured =
+        typeof dto.isFeatured === 'string'
+          ? dto.isFeatured.toLowerCase() === 'true'
+          : !!dto.isFeatured;
+    }
+    const updatedVideo = await this.prisma.video.update({
       where: { id },
       data: {
-        title: dto.title ?? existing.title,
-        description: dto.description ?? existing.description,
-        thumbnailUrl: dto.thumbnailUrl ?? existing.thumbnailUrl,
-        videoUrl: dto.videoUrl ?? existing.videoUrl,
-        tags: parsedTags,
-        isFeatured: isFeatured,
-        // duration: dto.duration !== undefined ? Number(dto.duration) : existing.duration,
+        title: dto.title ?? existingVideo.title,
+        description: dto.description ?? existingVideo.description,
+        tags: parsedTags ?? existingVideo.tags,
+        isFeatured:
+          isFeatured !== undefined ? isFeatured : existingVideo.isFeatured,
+        videoUrl,
+        thumbnailUrl,
+        duration,
       },
     });
-  
-    return {
-      message: 'Video updated successfully',
-      data: updated,
-    };
+
+    return updatedVideo;
   }
-  
+
   async findFeaturedVideos(userId: string, page = 1, limit = 10) {
     const skip = (page - 1) * limit;
 

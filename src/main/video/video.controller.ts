@@ -30,6 +30,7 @@ import { diskStorage } from 'multer';
 import { extname } from 'path';
 import { UpdateVideoDtoWithFile } from './dto/update-video-with-file.dto';
 import * as fs from 'fs';
+import { uploadToCloudinary } from 'src/config/cloudinary.config';
 
 
 interface AuthenticatedRequest extends Request {
@@ -175,33 +176,7 @@ searchVideos(
 }
 
 @Patch(':id')
-@UseInterceptors(
-  FileFieldsInterceptor(
-    [
-      { name: 'video', maxCount: 1 },
-      { name: 'thumbnail', maxCount: 1 },
-    ],
-    {
-      storage: diskStorage({
-        destination: (req, file, cb) => {
-          const folder =
-            file.fieldname === 'video'
-              ? './uploads/videos'
-              : './uploads/thumbnails';
-
-          // ✅ Ensure folder exists
-          fs.mkdirSync(folder, { recursive: true });
-
-          cb(null, folder);
-        },
-        filename: (req, file, cb) => {
-          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-          cb(null, `${file.fieldname}-${uniqueSuffix}${extname(file.originalname)}`);
-        },
-      }),
-    },
-  ),
-)
+@UseInterceptors(AnyFilesInterceptor())
 @ApiConsumes('multipart/form-data')
 @ApiBody({
   description: 'Update video and/or thumbnail',
@@ -210,20 +185,13 @@ searchVideos(
 @ApiParam({ name: 'id', description: 'Video ID' })
 async updateVideo(
   @Param('id') id: string,
-  @UploadedFiles() files: { video?: Express.Multer.File[]; thumbnail?: Express.Multer.File[] },
+  @UploadedFiles() files: Array<Express.Multer.File>,
   @Body() body: UpdateVideoDto,
 ) {
-  const videoFile = files.video?.[0];
-  const thumbnailFile = files.thumbnail?.[0];
+  const videoFile = files.find((file) => file.fieldname === 'video');
+  const thumbnailFile = files.find((file) => file.fieldname === 'thumbnail');
 
-  const videoUrl = videoFile ? `/uploads/videos/${videoFile.filename}` : undefined;
-  const thumbnailUrl = thumbnailFile ? `/uploads/thumbnails/${thumbnailFile.filename}` : undefined;
-
-  return this.videoService.updateVideo(id, {
-    ...body,
-    videoUrl,
-    thumbnailUrl,
-  });
+  return this.videoService.update(id, body, videoFile, thumbnailFile);
 }
 
 }

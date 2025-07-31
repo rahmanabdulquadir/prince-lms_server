@@ -52,11 +52,11 @@ export class UpdateVideoDto {
   @IsOptional()
   isFeatured?: boolean | string;
 
-  @ApiPropertyOptional({
-    description: 'Duration of the video in seconds',
-    example: 120,
-    type: Number,
-  })
-  @IsOptional()
-  duration?: number;
+  // @ApiPropertyOptional({
+  //   description: 'Duration of the video in seconds',
+  //   example: 120,
+  //   type: Number,
+  // })
+  // @IsOptional()
+  // duration?: number;
 }

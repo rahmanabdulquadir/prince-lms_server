@@ -147,7 +147,7 @@ export class VideoService {
         videoUrl: dto.videoUrl ?? existing.videoUrl,
         tags: parsedTags,
         isFeatured: isFeatured,
-        duration: dto.duration !== undefined ? Number(dto.duration) : existing.duration,
+        // duration: dto.duration !== undefined ? Number(dto.duration) : existing.duration,
       },
     });
   

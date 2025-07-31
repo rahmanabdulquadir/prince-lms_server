@@ -29,6 +29,7 @@ import { UpdateVideoDto } from './dto/update-video.dto';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
 import { UpdateVideoDtoWithFile } from './dto/update-video-with-file.dto';
+import * as fs from 'fs';
 
 
 interface AuthenticatedRequest extends Request {
@@ -183,7 +184,14 @@ searchVideos(
     {
       storage: diskStorage({
         destination: (req, file, cb) => {
-          const folder = file.fieldname === 'video' ? './uploads/videos' : './uploads/thumbnails';
+          const folder =
+            file.fieldname === 'video'
+              ? './uploads/videos'
+              : './uploads/thumbnails';
+
+          // ✅ Ensure folder exists
+          fs.mkdirSync(folder, { recursive: true });
+
           cb(null, folder);
         },
         filename: (req, file, cb) => {
@@ -194,7 +202,6 @@ searchVideos(
     },
   ),
 )
-
 @ApiConsumes('multipart/form-data')
 @ApiBody({
   description: 'Update video and/or thumbnail',
@@ -218,4 +225,5 @@ async updateVideo(
     thumbnailUrl,
   });
 }
+
 }

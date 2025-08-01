@@ -16,7 +16,8 @@ export class UpdatePlanDto extends PartialType(CreatePlanDto) {
 
   @ApiPropertyOptional({
     type: [String],
-    description: 'Only the new features you want to add. It will be merged with existing ones.',
+    description:
+      'Only the new features you want to add. It will be merged with existing ones.',
   })
   @IsOptional()
   @IsArray()

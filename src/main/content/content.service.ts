@@ -113,10 +113,18 @@ export class ContentService {
   }
 
   async getModuleContentsWithProgress(moduleId: string, userId: string) {
+    console.log('🔍 Fetching contents for module:', moduleId);
+  
     const contents = await this.prisma.content.findMany({
       where: { moduleId },
       orderBy: { order: 'asc' },
     });
+  
+    console.log('📦 All contents in module:', contents.map(c => ({
+      id: c.id,
+      title: c.title,
+      order: c.order,
+    })));
   
     const progressMap = await this.prisma.progress.findMany({
       where: {
@@ -129,35 +137,43 @@ export class ContentService {
   
     const progressByContent = new Map(progressMap.map((p) => [p.contentId, p]));
   
-    const result = contents.map((content, index) => {
-      let locked = false;
+    let allPreviousCompleted = true;
   
-      if (index === 0) {
-        locked = false;
-      } else {
-        const prevContent = contents[index - 1];
-        const prevProgress = progressByContent.get(prevContent.id);
-        locked = !prevProgress || !prevProgress.isCompleted;
+    const result = contents.map((content, index) => {
+      let locked = !allPreviousCompleted;
+  
+      const currentProgress = progressByContent.get(content.id);
+      if (!locked && (!currentProgress || !currentProgress.isCompleted)) {
+        allPreviousCompleted = false;
       }
   
       return {
         ...content,
-        locked, // purely dynamic value
+        locked,
       };
     });
+  
+    console.log('📤 Final response with lock status:', result.map(c => ({
+      title: c.title,
+      id: c.id,
+      order: c.order,
+      locked: c.locked,
+    })));
   
     return result;
   }
   
 
   async markContentAsCompleted(contentId: string, userId: string) {
-    // Get content with courseId
     const content = await this.prisma.content.findUnique({
       where: { id: contentId },
       include: {
         module: {
           include: {
             course: true,
+            contents: {
+              orderBy: { order: 'asc' },
+            },
           },
         },
       },
@@ -169,7 +185,6 @@ export class ContentService {
   
     const courseId = content.module.course.id;
   
-    // Upsert progress
     const progress = await this.prisma.progress.upsert({
       where: {
         userId_contentId: {
@@ -190,8 +205,12 @@ export class ContentService {
       },
     });
   
-    return progress;
+    // Optionally: Pre-load progress of next content or trigger analytics, etc.
+    // No need to manually unlock in DB since locked status is dynamically derived.
+  
+    return {
+      message: 'Content marked as completed',
+      progress,
+    };
   }
-  
-  
 }

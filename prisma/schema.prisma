@@ -106,10 +106,10 @@ model Content {
   duration    String?
   tags        String[]
 
-  moduleId String
-  module   Module @relation(fields: [moduleId], references: [id], onDelete: Cascade)
-
+  moduleId        String
+  module          Module            @relation(fields: [moduleId], references: [id], onDelete: Cascade)
   progresses      Progress[]
+  order           Int               @default(0)
   favoriteByUsers FavoriteContent[]
 
   createdAt DateTime @default(now())

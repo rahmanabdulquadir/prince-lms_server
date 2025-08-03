@@ -103,7 +103,7 @@ model Content {
   // duration    Int
   description String?
   viewCount   Int?
-  duration    String?
+  duration    Int?
   tags        String[]
 
   moduleId        String

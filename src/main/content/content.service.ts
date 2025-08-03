@@ -38,38 +38,37 @@ export class ContentService {
   async create(dto: CreateContentDto, file: Express.Multer.File) {
     try {
       const uploaded = await this.uploadFileToCloudinary(file);
-
+  
       const parsedTags =
         typeof dto.tags === 'string'
           ? (dto.tags as string).split(',').map((tag) => tag.trim())
           : dto.tags;
-
+  
+      const durationInSeconds = uploaded?.duration
+        ? Math.round(uploaded.duration)
+        : null; // fallback if duration not available
+  
       const data = {
         title: dto.title,
-        // duration:
-        //   typeof dto.duration === 'string'
-        //     ? parseInt(dto.duration, 10)
-        //     : dto.duration,
+        duration: durationInSeconds,
         description: dto.description,
         tags: parsedTags,
         moduleId: dto.moduleId,
         viewCount:
           typeof dto.viewCount === 'string'
             ? parseInt(dto.viewCount, 10)
-            : (dto.viewCount ?? 0),
+            : dto.viewCount ?? 0,
         url: uploaded.secure_url,
       };
-
+  
       const content = await this.prisma.content.create({ data });
-
+  
       // ✅ Notify all subscribed/paid users
       const paidUsers = await this.prisma.user.findMany({
         where: { isSubscribed: true },
         select: { id: true },
       });
-
-      console.log(paidUsers);
-
+  
       const notifications = paidUsers.map((user) =>
         this.notificationService.create({
           title: 'New Content Added',
@@ -77,9 +76,9 @@ export class ContentService {
           contentId: content.id,
         }),
       );
-
+  
       await Promise.all(notifications);
-
+  
       return content;
     } catch (error) {
       console.error('Cloudinary error:', error);
@@ -88,7 +87,6 @@ export class ContentService {
       );
     }
   }
-
   async incrementViewCount(id: string) {
     return this.prisma.content.update({
       where: { id },
@@ -175,6 +173,10 @@ export class ContentService {
               orderBy: { order: 'asc' },
             },
           },
+
+
+
+
         },
       },
     });

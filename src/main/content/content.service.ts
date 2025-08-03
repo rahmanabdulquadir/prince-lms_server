@@ -48,18 +48,23 @@ export class ContentService {
         ? Math.round(uploaded.duration)
         : null; // fallback if duration not available
   
-      const data = {
-        title: dto.title,
-        duration: durationInSeconds,
-        description: dto.description,
-        tags: parsedTags,
-        moduleId: dto.moduleId,
-        viewCount:
-          typeof dto.viewCount === 'string'
-            ? parseInt(dto.viewCount, 10)
-            : dto.viewCount ?? 0,
-        url: uploaded.secure_url,
-      };
+        const maxOrderContent = await this.prisma.content.findFirst({
+          where: { moduleId: dto.moduleId },
+          orderBy: { order: 'desc' },
+        });
+        
+        const nextOrder = maxOrderContent ? maxOrderContent.order + 1 : 0;
+        
+        const data = {
+          title: dto.title,
+          duration: durationInSeconds,
+          description: dto.description,
+          tags: parsedTags,
+          moduleId: dto.moduleId,
+          order: nextOrder, // 👈 this is now set
+          viewCount: typeof dto.viewCount === 'string' ? parseInt(dto.viewCount, 10) : dto.viewCount ?? 0,
+          url: uploaded.secure_url,
+        };
   
       const content = await this.prisma.content.create({ data });
   

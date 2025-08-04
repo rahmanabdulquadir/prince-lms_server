@@ -45,19 +45,41 @@ export class CourseController {
     return this.courseService.create(createCourseDto, file);
   }
 
-@Get()
-@ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
-@ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
-@ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
-findAll(
-  @Query('page') page = '1',
-  @Query('limit') limit = '10',
-  @Req() req: any // to get req.user from JWT
-) {
-  const user = req.user;
-  return this.courseService.findAll(user, +page, +limit);
-}
+  @Get()
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
+  findAll(
+    @Query('page') page = '1',
+    @Query('limit') limit = '10',
+    @Req() req: any, // to get req.user from JWT
+  ) {
+    const user = req.user;
+    return this.courseService.findAll(user, +page, +limit);
+  }
+
+  @Get('search')
+  search(@Query('query') query: string) {
+    console.log('🔔 Controller Hit. Query:', query); // <-- ADD THIS LOG
+    return this.courseService.searchCourses(query);
+  }
+
+  @Get('in-progress')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  getInProgressCourses(@Req() req: any) {
+    console.log('📥 In-progress route hit');
+    return this.courseService.getInProgressCourses(req.user.id);
+  }
+
+  @Get('completed')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  getCompletedCourses(@Req() req: any) {
+    0;
+    return this.courseService.getCompletedCourses(req.user.id);
+  }
 
   @Get(':id')
   findOne(@Param('id') id: string) {
@@ -82,11 +104,5 @@ findAll(
   @Delete(':id')
   delete(@Param('id') id: string) {
     return this.courseService.delete(id);
-  }
-
-  @Get('search')
-  search(@Query('query') query: string) {
-    console.log('🔔 Controller Hit. Query:', query); // <-- ADD THIS LOG
-    return this.courseService.searchCourses(query);
   }
 }

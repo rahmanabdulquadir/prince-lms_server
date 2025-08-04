@@ -190,11 +190,17 @@ async getInProgressCourses(userId: string) {
     },
   });
 
-  const result = [];
+  console.log('🎓 All courses:', allCourses.length);
+
+  const result: Array<
+    typeof allCourses[number] & { progressPercent: number }
+  > = [];
 
   for (const course of allCourses) {
     const allContents = course.modules.flatMap((m) => m.contents);
     const totalContents = allContents.length;
+
+    console.log(`📚 Course "${course.title}" contents:`, allContents.length);
 
     if (totalContents === 0) continue;
 
@@ -232,7 +238,9 @@ async getCompletedCourses(userId: string) {
     },
   });
 
-  const result = [];
+  const result: Array<
+  typeof allCourses[number] & { progressPercent: number }
+> = [];
 
   for (const course of allCourses) {
     const allContents = course.modules.flatMap((m) => m.contents);

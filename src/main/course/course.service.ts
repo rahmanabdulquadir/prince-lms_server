@@ -120,7 +120,6 @@ async delete(id: string) {
 
 async searchCourses(query = '', page = 1, limit = 10) {
   if (!query.trim()) {
-    console.log('⚠️ Empty or missing search query');
     return {
       data: [],
       total: 0,
@@ -153,8 +152,6 @@ async searchCourses(query = '', page = 1, limit = 10) {
     ],
   };
 
-  console.log('🔍 Final where condition:', JSON.stringify(whereCondition, null, 2));
-
   const total = await this.prisma.course.count({ where: whereCondition });
   const results = await this.prisma.course.findMany({
     where: whereCondition,
@@ -168,7 +165,6 @@ async searchCourses(query = '', page = 1, limit = 10) {
     },
   });
 
-  console.log('✅ Total:', total, '| Returned:', results.length);
 
   return {
     data: results,
@@ -200,22 +196,34 @@ async getInProgressCourses(userId: string) {
     const allContents = course.modules.flatMap((m) => m.contents);
     const totalContents = allContents.length;
 
-    console.log(`📚 Course "${course.title}" contents:`, allContents.length);
+    console.log(`📚 Course "${course.title}" total contents:`, totalContents);
 
     if (totalContents === 0) continue;
 
-    const completedContents = await this.prisma.userContentProgress.count({
+    const contentIds = allContents.map((c) => c.id);
+
+    const completedCount = await this.prisma.progress.count({
       where: {
         userId,
         contentId: {
-          in: allContents.map((c) => c.id),
+          in: contentIds,
         },
-        completed: true,
+        isCompleted: true,
       },
     });
 
-    const progressPercent = Math.round((completedContents / totalContents) * 100);
+    console.log(
+      `✅ Completed contents for "${course.title}":`,
+      completedCount
+    );
 
+    const progressPercent = Math.round(
+      (completedCount / totalContents) * 100
+    );
+
+    console.log(`📈 Progress for "${course.title}": ${progressPercent}%`);
+
+    // Only include if course is partially completed
     if (progressPercent > 0 && progressPercent < 100) {
       result.push({
         ...course,
@@ -224,8 +232,11 @@ async getInProgressCourses(userId: string) {
     }
   }
 
+  console.log('📦 Final in-progress courses:', result.length);
+
   return result;
 }
+
 
 async getCompletedCourses(userId: string) {
   const allCourses = await this.prisma.course.findMany({
@@ -239,8 +250,8 @@ async getCompletedCourses(userId: string) {
   });
 
   const result: Array<
-  typeof allCourses[number] & { progressPercent: number }
-> = [];
+    typeof allCourses[number] & { progressPercent: number }
+  > = [];
 
   for (const course of allCourses) {
     const allContents = course.modules.flatMap((m) => m.contents);
@@ -248,17 +259,19 @@ async getCompletedCourses(userId: string) {
 
     if (totalContents === 0) continue;
 
-    const completedContents = await this.prisma.userContentProgress.count({
+    const contentIds = allContents.map((c) => c.id);
+
+    const completedCount = await this.prisma.progress.count({
       where: {
         userId,
         contentId: {
-          in: allContents.map((c) => c.id),
+          in: contentIds,
         },
-        completed: true,
+        isCompleted: true,
       },
     });
 
-    if (completedContents === totalContents) {
+    if (completedCount === totalContents) {
       result.push({
         ...course,
         progressPercent: 100,
@@ -268,5 +281,4 @@ async getCompletedCourses(userId: string) {
 
   return result;
 }
-
 }

@@ -38,42 +38,45 @@ export class ContentService {
   async create(dto: CreateContentDto, file: Express.Multer.File) {
     try {
       const uploaded = await this.uploadFileToCloudinary(file);
-  
+
       const parsedTags =
         typeof dto.tags === 'string'
           ? (dto.tags as string).split(',').map((tag) => tag.trim())
           : dto.tags;
-  
+
       const durationInSeconds = uploaded?.duration
         ? Math.round(uploaded.duration)
         : null; // fallback if duration not available
-  
-        const maxOrderContent = await this.prisma.content.findFirst({
-          where: { moduleId: dto.moduleId },
-          orderBy: { order: 'desc' },
-        });
-        
-        const nextOrder = maxOrderContent ? maxOrderContent.order + 1 : 0;
-        
-        const data = {
-          title: dto.title,
-          duration: durationInSeconds,
-          description: dto.description,
-          tags: parsedTags,
-          moduleId: dto.moduleId,
-          order: nextOrder, // 👈 this is now set
-          viewCount: typeof dto.viewCount === 'string' ? parseInt(dto.viewCount, 10) : dto.viewCount ?? 0,
-          url: uploaded.secure_url,
-        };
-  
+
+      const maxOrderContent = await this.prisma.content.findFirst({
+        where: { moduleId: dto.moduleId },
+        orderBy: { order: 'desc' },
+      });
+
+      const nextOrder = maxOrderContent ? maxOrderContent.order + 1 : 0;
+
+      const data = {
+        title: dto.title,
+        duration: durationInSeconds,
+        description: dto.description,
+        tags: parsedTags,
+        moduleId: dto.moduleId,
+        order: nextOrder, // 👈 this is now set
+        viewCount:
+          typeof dto.viewCount === 'string'
+            ? parseInt(dto.viewCount, 10)
+            : (dto.viewCount ?? 0),
+        url: uploaded.secure_url,
+      };
+
       const content = await this.prisma.content.create({ data });
-  
+
       // ✅ Notify all subscribed/paid users
       const paidUsers = await this.prisma.user.findMany({
         where: { isSubscribed: true },
         select: { id: true },
       });
-  
+
       const notifications = paidUsers.map((user) =>
         this.notificationService.create({
           title: 'New Content Added',
@@ -81,9 +84,9 @@ export class ContentService {
           contentId: content.id,
         }),
       );
-  
+
       await Promise.all(notifications);
-  
+
       return content;
     } catch (error) {
       console.error('Cloudinary error:', error);
@@ -117,18 +120,21 @@ export class ContentService {
 
   async getModuleContentsWithProgress(moduleId: string, userId: string) {
     console.log('🔍 Fetching contents for module:', moduleId);
-  
+
     const contents = await this.prisma.content.findMany({
       where: { moduleId },
       orderBy: { order: 'asc' },
     });
-  
-    console.log('📦 All contents in module:', contents.map(c => ({
-      id: c.id,
-      title: c.title,
-      order: c.order,
-    })));
-  
+
+    console.log(
+      '📦 All contents in module:',
+      contents.map((c) => ({
+        id: c.id,
+        title: c.title,
+        order: c.order,
+      })),
+    );
+
     const progressMap = await this.prisma.progress.findMany({
       where: {
         userId,
@@ -137,35 +143,37 @@ export class ContentService {
         },
       },
     });
-  
+
     const progressByContent = new Map(progressMap.map((p) => [p.contentId, p]));
-  
+
     let allPreviousCompleted = true;
-  
+
     const result = contents.map((content, index) => {
       let locked = !allPreviousCompleted;
-  
+
       const currentProgress = progressByContent.get(content.id);
       if (!locked && (!currentProgress || !currentProgress.isCompleted)) {
         allPreviousCompleted = false;
       }
-  
+
       return {
         ...content,
         locked,
       };
     });
-  
-    console.log('📤 Final response with lock status:', result.map(c => ({
-      title: c.title,
-      id: c.id,
-      order: c.order,
-      locked: c.locked,
-    })));
-  
+
+    console.log(
+      '📤 Final response with lock status:',
+      result.map((c) => ({
+        title: c.title,
+        id: c.id,
+        order: c.order,
+        locked: c.locked,
+      })),
+    );
+
     return result;
   }
-  
 
   async markContentAsCompleted(contentId: string, userId: string) {
     const content = await this.prisma.content.findUnique({
@@ -178,20 +186,16 @@ export class ContentService {
               orderBy: { order: 'asc' },
             },
           },
-
-
-
-
         },
       },
     });
-  
+
     if (!content || !content.module || !content.module.course) {
       throw new NotFoundException('Content, module, or course not found');
     }
-  
+
     const courseId = content.module.course.id;
-  
+
     const progress = await this.prisma.progress.upsert({
       where: {
         userId_contentId: {
@@ -201,6 +205,14 @@ export class ContentService {
       },
       update: {
         isCompleted: true,
+
+
+
+
+
+
+
+        
         percentage: 100,
       },
       create: {
@@ -211,26 +223,16 @@ export class ContentService {
         percentage: 100,
       },
     });
-  
+
     // Optionally: Pre-load progress of next content or trigger analytics, etc.
     // No need to manually unlock in DB since locked status is dynamically derived.
-  
+
     return {
       message: 'Content marked as completed',
       progress,
     };
   }
 }
-
-
-
-
-
-
-
-
-
-
 
 // // scripts/fixContentOrder.ts
 // import { PrismaClient } from '@prisma/client';

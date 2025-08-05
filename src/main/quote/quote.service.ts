@@ -132,4 +132,22 @@ export class QuoteService {
       },
     });
   }
+
+  async getSavedQuotes(userId: string) {
+    const savedQuotes = await this.prisma.savedQuote.findMany({
+      where: { userId },
+      include: {
+        quote: true,
+      },
+      orderBy: {
+        savedAt: 'desc',
+      },
+    });
+  
+    return savedQuotes.map((saved) => ({
+      ...saved.quote,
+      isSaved: true,
+      savedAt: saved.savedAt,
+    }));
+  }
 }

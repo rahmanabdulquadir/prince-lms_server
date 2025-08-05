@@ -35,6 +35,18 @@ export class QuoteController {
 
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
+  @Get('saved')
+  @ApiOperation({ summary: 'Get all saved quotes for the user' })
+  @ApiBearerAuth()
+  getSavedQuotes(@Req() req: any) {
+    console.log('holaaaa')
+    const userId = req.user?.id;
+    return this.quoteService.getSavedQuotes(userId);
+  }
+
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
   @Get()
   @ApiOperation({ summary: 'Get all quotes with pagination' })
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
@@ -52,15 +64,21 @@ export class QuoteController {
         isSubscribed?: boolean;
       };
     };
-  
+
     const userId = user.user?.id;
     const isSubscribed = user.user?.isSubscribed ?? false;
     const isAdmin = user.user?.role === 'ADMIN';
-  
+
     const pageNum = parseInt(page, 10) || 1;
     const limitNum = parseInt(limit, 10) || 10;
-  
-    return this.quoteService.findAll(isSubscribed, isAdmin, pageNum, limitNum, userId);
+
+    return this.quoteService.findAll(
+      isSubscribed,
+      isAdmin,
+      pageNum,
+      limitNum,
+      userId,
+    );
   }
 
   @Get(':id')
@@ -84,6 +102,7 @@ export class QuoteController {
   unsaveQuote(@Param('id') quoteId: string, @Req() req: any) {
     return this.quoteService.unsaveQuote(quoteId, req.user.id);
   }
+
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a quote by ID' })

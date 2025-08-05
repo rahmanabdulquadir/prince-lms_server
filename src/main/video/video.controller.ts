@@ -130,6 +130,20 @@ export class VideoController {
     return this.videoService.findRecentVideos(userId, +page, +limit);
   }
 
+  @UseGuards(JwtAuthGuard)
+@ApiBearerAuth()
+@Get('saved/all')
+@ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+@ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
+async getSavedVideos(
+  @Req() req: AuthenticatedRequest,
+  @Query('page') page = '1',
+  @Query('limit') limit = '10',
+) {
+  const userId = req.user.id;
+  return this.videoService.getSavedVideos(userId, +page, +limit);
+}
+
   @Get(':id/view-count')
   async incrementView(@Param('id') id: string) {
     return this.videoService.incrementViews(id);

@@ -442,4 +442,40 @@ export class VideoService {
       pageCount: Math.ceil(total / limit),
     };
   }
+
+  async getSavedVideos(userId: string, page = 1, limit = 10) {
+    const skip = (page - 1) * limit;
+  
+    const [savedVideos, total] = await this.prisma.$transaction([
+      this.prisma.savedVideo.findMany({
+        where: { userId },
+        include: {
+          video: {
+            include: {
+              _count: {
+                select: { likes: true },
+              },
+            },
+          },
+        },
+        skip,
+        take: limit,
+        orderBy: { savedAt: 'desc' },
+      }),
+      this.prisma.savedVideo.count({ where: { userId } }),
+    ]);
+  
+    const videos = savedVideos.map((saved) => ({
+      ...saved.video,
+      likeCount: saved.video._count.likes,
+      isLiked: true, // since it's saved by user
+    }));
+  
+    return {
+      data: videos,
+      total,
+      page,
+      pageCount: Math.ceil(total / limit),
+    };
+  }
 }

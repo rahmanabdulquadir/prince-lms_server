@@ -36,14 +36,20 @@ export class QuoteController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @Get('saved')
-  @ApiOperation({ summary: 'Get all saved quotes for the user' })
+  @ApiOperation({ summary: 'Get all saved quotes for the user (paginated)' })
   @ApiBearerAuth()
-  getSavedQuotes(@Req() req: any) {
-    console.log('holaaaa')
+  getSavedQuotes(
+    @Req() req: any,
+    @Query('page') page = '1',
+    @Query('limit') limit = '10',
+  ) {
     const userId = req.user?.id;
-    return this.quoteService.getSavedQuotes(userId);
+    return this.quoteService.getSavedQuotes(
+      userId,
+      Number(page),
+      Number(limit),
+    );
   }
-
 
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
@@ -102,7 +108,6 @@ export class QuoteController {
   unsaveQuote(@Param('id') quoteId: string, @Req() req: any) {
     return this.quoteService.unsaveQuote(quoteId, req.user.id);
   }
-
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a quote by ID' })

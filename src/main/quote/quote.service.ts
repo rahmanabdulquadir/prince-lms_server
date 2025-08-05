@@ -133,21 +133,32 @@ export class QuoteService {
     });
   }
 
-  async getSavedQuotes(userId: string) {
-    const savedQuotes = await this.prisma.savedQuote.findMany({
-      where: { userId },
-      include: {
-        quote: true,
-      },
-      orderBy: {
-        savedAt: 'desc',
-      },
-    });
+  async getSavedQuotes(userId: string, page = 1, limit = 10) {
+    const skip = (page - 1) * limit;
   
-    return savedQuotes.map((saved) => ({
+    const [data, total] = await this.prisma.$transaction([
+      this.prisma.savedQuote.findMany({
+        where: { userId },
+        include: { quote: true },
+        orderBy: { savedAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      this.prisma.savedQuote.count({ where: { userId } }),
+    ]);
+  
+    const quotes = data.map((saved) => ({
       ...saved.quote,
       isSaved: true,
       savedAt: saved.savedAt,
     }));
+  
+    return {
+      currentPage: page,
+      totalPages: Math.ceil(total / limit),
+      totalQuotes: total,
+      quotes,
+    };
   }
+  
 }

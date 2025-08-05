@@ -190,7 +190,8 @@ model Like {
   video   Video  @relation(fields: [videoId], references: [id])
   videoId String
 
-  likedAt DateTime @default(now())
+  likedAt   DateTime @default(now())
+  createdAt DateTime? @default(now())
 
   @@unique([userId, videoId])
 }

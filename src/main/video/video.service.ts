@@ -443,39 +443,38 @@ export class VideoService {
     };
   }
 
-  async getSavedVideos(userId: string, page = 1, limit = 10) {
+  async getLikedVideos(userId: string, page = 1, limit = 10) {
     const skip = (page - 1) * limit;
   
-    const [savedVideos, total] = await this.prisma.$transaction([
-      this.prisma.savedVideo.findMany({
-        where: { userId },
-        include: {
-          video: {
-            include: {
-              _count: {
-                select: { likes: true },
-              },
-            },
-          },
-        },
-        skip,
-        take: limit,
-        orderBy: { savedAt: 'desc' },
-      }),
-      this.prisma.savedVideo.count({ where: { userId } }),
-    ]);
+    const likedVideos = await this.prisma.like.findMany({
+      where: { userId },
+      include: {
+        video: true, // this needs to be defined in your schema
+      },
+      skip,
+      take: limit,
+      orderBy: {
+        createdAt: 'desc', // make sure this exists in model
+      },
+    });
   
-    const videos = savedVideos.map((saved) => ({
-      ...saved.video,
-      likeCount: saved.video._count.likes,
-      isLiked: true, // since it's saved by user
+    const result = likedVideos.map((like) => ({
+      ...like.video,
+      likedAt: like.createdAt, // or like.likedAt depending on your model
     }));
   
+    const totalCount = await this.prisma.like.count({ where: { userId } });
+  
     return {
-      data: videos,
-      total,
-      page,
-      pageCount: Math.ceil(total / limit),
+      data: result,
+      meta: {
+        total: totalCount,
+        page,
+        limit,
+        totalPages: Math.ceil(totalCount / limit),
+      },
     };
   }
+  
+  
 }

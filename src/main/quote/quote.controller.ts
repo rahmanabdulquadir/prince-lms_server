@@ -36,6 +36,8 @@ export class QuoteController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @Get('saved')
+  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
   @ApiOperation({ summary: 'Get all saved quotes for the user (paginated)' })
   @ApiBearerAuth()
   getSavedQuotes(

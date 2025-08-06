@@ -62,6 +62,15 @@ export class QuoteService {
     return quotesWithIsSaved;
   }
 
+  async getDailyInspirationQuote() {
+    const latestQuote = await this.prisma.quote.findFirst({
+      orderBy: { createdAt: 'desc' },
+    });
+  
+    return latestQuote;
+  }
+  
+
   findOne(id: string) {
     return this.prisma.quote.findUnique({ where: { id } });
   }

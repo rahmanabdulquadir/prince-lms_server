@@ -89,6 +89,12 @@ export class QuoteController {
     );
   }
 
+  @Get('daily')
+  @ApiOperation({ summary: 'Get the latest daily inspirational quote' })
+  getDailyInspiration() {
+    return this.quoteService.getDailyInspirationQuote();
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get a single quote by ID' })
   findOne(@Param('id') id: string) {

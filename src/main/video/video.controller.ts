@@ -40,7 +40,6 @@ import { UpdateVideoDtoWithFile } from './dto/update-video-with-file.dto';
 import * as fs from 'fs';
 import { uploadToCloudinary } from 'src/config/cloudinary.config';
 import { AdminGuard } from 'src/common/guard/AdminGuard';
-import { CreateUpcomingContentDto } from './dto/create-upcoming-content.dto';
 
 interface AuthenticatedRequest extends Request {
   user: { id: string }; // Extend based on your JWT payload
@@ -99,11 +98,6 @@ export class VideoController {
     return this.videoService.create(dto, videoFile, thumbnailFile);
   }
 
-  @Post('upcoming-updates')
-  @UseGuards(AdminGuard) // Replace with your admin guard
-  createUpcoming(@Body() dto: CreateUpcomingContentDto) {
-    return this.videoService.createUpcomingContent(dto);
-  }
   @Get()
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })

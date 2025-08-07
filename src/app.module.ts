@@ -29,6 +29,7 @@ import { NotificationModule } from './main/notification/notification.module';
 import { TwilioService } from './main/twilio/twilio.service';
 import { TwilioModule } from './main/twilio/twilio.module';
 import { VideoModule } from './main/video/video.module';
+import { UpdateModule } from './main/update/update.module';
 
 @Module({
   imports: [
@@ -51,6 +52,7 @@ import { VideoModule } from './main/video/video.module';
     NotificationModule,
     TwilioModule,
     VideoModule,
+    UpdateModule,
   ],
   controllers: [
     AppController,

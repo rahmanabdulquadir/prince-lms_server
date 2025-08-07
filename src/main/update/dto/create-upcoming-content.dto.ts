@@ -1,4 +1,5 @@
-import { IsEnum, IsNotEmpty, IsOptional, IsString, IsUrl } from 'class-validator';
+import { IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
 
 export enum ContentType {
   VIDEO = 'video',
@@ -6,20 +7,24 @@ export enum ContentType {
 }
 
 export class CreateUpcomingContentDto {
+  @ApiProperty()
   @IsString()
   @IsNotEmpty()
   title: string;
 
+  @ApiProperty()
   @IsString()
   @IsNotEmpty()
   description: string;
 
-  @IsUrl()
-  bannerImage: string;
+  @ApiProperty({ type: 'string', format: 'binary' }) // File upload
+  bannerImage: any;
 
+  @ApiProperty({ required: false })
   @IsOptional()
   releaseDate?: Date;
 
+  @ApiProperty({ enum: ContentType })
   @IsEnum(ContentType)
   contentType: ContentType;
 }

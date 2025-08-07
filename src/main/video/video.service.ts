@@ -11,6 +11,7 @@ import { v2 as cloudinary } from 'cloudinary';
 import '../../config/cloudinary.config';
 import * as streamifier from 'streamifier';
 import { UpdateVideoDto } from './dto/update-video.dto';
+import { CreateUpcomingContentDto } from './dto/create-upcoming-content.dto';
 
 @Injectable()
 export class VideoService {
@@ -79,6 +80,30 @@ export class VideoService {
         'Upload failed: ' + (error?.message || 'Unknown Cloudinary error'),
       );
     }
+  }
+
+  async createUpcomingContent(dto: CreateUpcomingContentDto) {
+    const upcoming = await this.prisma.upcomingContent.create({
+      data: {
+        title: dto.title,
+        description: dto.description,
+        bannerImage: dto.bannerImage,
+        releaseDate: dto.releaseDate,
+        contentType: dto.contentType,
+      },
+    });
+  
+    return upcoming;
+  }
+
+  async getUpcomingContent() {
+    const updates = await this.prisma.upcomingContent.findMany({
+      orderBy: {
+        releaseDate: 'asc',
+      },
+    });
+  
+    return updates;
   }
 
   async getAllVideos(userId: string, page = 1, limit = 10) {

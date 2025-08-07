@@ -74,6 +74,16 @@ model PasswordResetOtp {
   createdAt  DateTime  @default(now())
 }
 
+model UpcomingContent {
+  id          String      @id @default(cuid())
+  title       String
+  description String
+  bannerImage String
+  releaseDate DateTime?
+  contentType ContentType
+  createdAt   DateTime    @default(now())
+}
+
 model Course {
   id          String     @id @default(uuid())
   title       String
@@ -190,7 +200,7 @@ model Like {
   video   Video  @relation(fields: [videoId], references: [id])
   videoId String
 
-  likedAt   DateTime @default(now())
+  likedAt   DateTime  @default(now())
   createdAt DateTime? @default(now())
 
   @@unique([userId, videoId])
@@ -320,6 +330,11 @@ model KeyPoint {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+enum ContentType {
+  video
+  course
 }
 
 enum PlanStatus {

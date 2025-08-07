@@ -20,12 +20,12 @@ export class UpdateService {
   }
 
   async getUpcomingContent() {
-  const updates = await this.prisma.upcomingContent.findMany({
-    orderBy: {
-      releaseDate: 'asc',
-    },
-  });
+    const updates = await this.prisma.upcomingContent.findMany({
+      orderBy: {
+        releaseDate: 'asc',
+      },
+    });
 
-  return updates;
-}
+    return updates;
+  }
 }

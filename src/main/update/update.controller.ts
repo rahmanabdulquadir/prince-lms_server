@@ -26,7 +26,7 @@ export class UpdateController {
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     type: CreateUpcomingContentDto,
-    description: 'Create upcoming video/course content with banner image',
+    description: 'Create upcoming video/course content with banner image', 
   })
   createUpcoming(
     @UploadedFile() file: Express.Multer.File,

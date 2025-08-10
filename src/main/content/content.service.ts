@@ -206,13 +206,6 @@ export class ContentService {
       update: {
         isCompleted: true,
 
-
-
-
-
-
-
-        
         percentage: 100,
       },
       create: {

@@ -19,60 +19,68 @@ export class ModuleService {
   //   });
   // }
 
- async getCourseModulesWithProgress(courseId: string, userId: string) {
-    this.logger.log(`Fetching modules for course: ${courseId}`);
+async getCourseModulesWithProgress(courseId: string, userId: string) {
+  this.logger.log(`Fetching modules for course: ${courseId}`);
 
-    const modules = await this.prisma.module.findMany({
-      where: { courseId },
-      orderBy: { createdAt: 'asc' }, // or change to your actual ordering field
-      include: {
-        contents: {
-          orderBy: { order: 'asc' },
-        },
+  const modules = await this.prisma.module.findMany({
+    where: { courseId },
+    orderBy: { createdAt: 'asc' },
+    include: {
+      contents: {
+        orderBy: { order: 'asc' },
       },
-    });
+    },
+  });
 
-    if (!modules.length) {
-      throw new NotFoundException('No modules found for this course');
-    }
+  if (!modules.length) {
+    throw new NotFoundException('No modules found for this course');
+  }
 
-    const allContentIds = modules.flatMap(m => m.contents.map(c => c.id));
+  const allContentIds = modules.flatMap(m => m.contents.map(c => c.id));
 
-    const progress = await this.prisma.progress.findMany({
-      where: {
-        userId,
-        contentId: { in: allContentIds },
-      },
-    });
+  const progress = await this.prisma.progress.findMany({
+    where: {
+      userId,
+      contentId: { in: allContentIds },
+    },
+  });
 
-    const progressByContent = new Map(progress.map(p => [p.contentId, p]));
+  const progressByContent = new Map(progress.map(p => [p.contentId, p]));
 
-    const processedModules = modules.map(module => {
-      let allPreviousCompleted = true;
+  const processedModules = modules.map((module, moduleIndex) => {
+    let allPreviousCompleted = true;
 
-      const processedContents = module.contents.map(content => {
-        const userProgress = progressByContent.get(content.id);
-        const locked = !allPreviousCompleted;
+    const processedContents = module.contents.map((content, contentIndex) => {
+      let locked: boolean;
 
-        if (!locked && (!userProgress || !userProgress.isCompleted)) {
-          allPreviousCompleted = false;
-        }
+      // ✅ Only unlock the first content of the first module
+      if (moduleIndex === 0 && contentIndex === 0) {
+        locked = false;
+      } else {
+        locked = !allPreviousCompleted;
+      }
 
-        return {
-          ...content,
-          locked,
-        };
-      });
+      // Track completion state for next content
+      const userProgress = progressByContent.get(content.id);
+      if (!locked && (!userProgress || !userProgress.isCompleted)) {
+        allPreviousCompleted = false;
+      }
 
       return {
-        ...module,
-        contents: processedContents,
+        ...content,
+        locked,
       };
     });
 
-    this.logger.log(`Returning ${processedModules.length} modules with progress status`);
-    return processedModules;
-  }
+    return {
+      ...module,
+      contents: processedContents,
+    };
+  });
+
+  this.logger.log(`Returning ${processedModules.length} modules with progress status`);
+  return processedModules;
+}
   findOne(id: string) {
     return this.prisma.module.findUnique({
       where: { id },

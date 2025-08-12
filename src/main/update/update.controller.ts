@@ -1,8 +1,11 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
+  Param,
   Post,
+  Put,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -26,7 +29,7 @@ export class UpdateController {
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     type: CreateUpcomingContentDto,
-    description: 'Create upcoming video/course content with banner image', 
+    description: 'Create upcoming video/course content with banner image',
   })
   createUpcoming(
     @UploadedFile() file: Express.Multer.File,
@@ -40,5 +43,27 @@ export class UpdateController {
     return this.updateService.getUpcomingContent();
   }
 
-  
+  @Put('upcoming-updates/:id')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  @UseInterceptors(FileInterceptor('bannerImage'))
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    type: CreateUpcomingContentDto,
+    description: 'Update upcoming video/course content with banner image',
+  })
+  updateUpcoming(
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File,
+    @Body() dto: CreateUpcomingContentDto,
+  ) {
+    return this.updateService.updateUpcomingContent(id, dto, file);
+  }
+
+  @Delete('upcoming-updates/:id')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  deleteUpcoming(@Param('id') id: string) {
+    return this.updateService.deleteUpcomingContent(id);
+  }
 }

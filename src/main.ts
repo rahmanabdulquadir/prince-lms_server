@@ -9,8 +9,12 @@ dotenv.config();
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-   app.enableCors({
-    origin: ['*', "http://localhost:3000", ], // Allow any origin
+  app.enableCors({
+    origin: [
+      '*',
+      'http://localhost:3000',
+      'https://glowup-dashboard.vercel.app',
+    ], // Allow any origin
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
   });
 

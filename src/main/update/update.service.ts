@@ -55,4 +55,35 @@ export class UpdateService {
       },
     });
   }
+
+  async updateUpcomingContent(
+    id: string,
+    dto: CreateUpcomingContentDto,
+    file?: Express.Multer.File,
+  ) {
+    let bannerImageUrl: string | undefined;
+  
+    if (file) {
+      bannerImageUrl = await this.uploadBannerToCloudinary(file);
+    }
+  
+    const updated = await this.prisma.upcomingContent.update({
+      where: { id },
+      data: {
+        title: dto.title,
+        description: dto.description,
+        bannerImage: bannerImageUrl ?? dto.bannerImage,
+        releaseDate: dto.releaseDate,
+        contentType: dto.contentType,
+      },
+    });
+  
+    return updated;
+  }
+  
+  async deleteUpcomingContent(id: string) {
+    return this.prisma.upcomingContent.delete({
+      where: { id },
+    });
+  }
 }

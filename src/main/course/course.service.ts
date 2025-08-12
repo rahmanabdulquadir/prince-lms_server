@@ -179,60 +179,89 @@ async getInProgressCourses(userId: string) {
   const allCourses = await this.prisma.course.findMany({
     include: {
       modules: {
+        orderBy: { createdAt: 'asc' },
         include: {
-          contents: true,
+          contents: {
+            orderBy: { order: 'asc' },
+          },
         },
       },
     },
   });
-
-  console.log('🎓 All courses:', allCourses.length);
 
   const result: Array<
     typeof allCourses[number] & { progressPercent: number }
   > = [];
 
   for (const course of allCourses) {
+    if (!course.modules.length) continue;
+
     const allContents = course.modules.flatMap((m) => m.contents);
     const totalContents = allContents.length;
-
-    console.log(`📚 Course "${course.title}" total contents:`, totalContents);
 
     if (totalContents === 0) continue;
 
     const contentIds = allContents.map((c) => c.id);
 
-    const completedCount = await this.prisma.progress.count({
+    const completedProgress = await this.prisma.progress.findMany({
       where: {
         userId,
-        contentId: {
-          in: contentIds,
-        },
+        contentId: { in: contentIds },
         isCompleted: true,
       },
     });
 
-    console.log(
-      `✅ Completed contents for "${course.title}":`,
-      completedCount
-    );
-
-    const progressPercent = Math.round(
-      (completedCount / totalContents) * 100
-    );
-
-    console.log(`📈 Progress for "${course.title}": ${progressPercent}%`);
+    const completedCount = completedProgress.length;
+    const progressPercent = Math.round((completedCount / totalContents) * 100);
 
     // Only include if course is partially completed
     if (progressPercent > 0 && progressPercent < 100) {
+      // Map progress by content ID
+      const progressByContent = new Map(
+        completedProgress.map((p) => [p.contentId, p])
+      );
+
+      const processedModules = course.modules.map((module, moduleIndex) => {
+        let allPreviousCompleted = true;
+
+        const processedContents = module.contents.map((content, contentIndex) => {
+          let locked: boolean;
+
+          if (moduleIndex === 0 && contentIndex === 0) {
+            // First module's first content unlocked
+            locked = false;
+          } else if (contentIndex === 0) {
+            // First content of other modules locked unless previous module fully completed
+            locked = true;
+          } else {
+            // Other contents follow normal unlocking rule
+            locked = !allPreviousCompleted;
+          }
+
+          const userProgress = progressByContent.get(content.id);
+          if (!locked && (!userProgress || !userProgress.isCompleted)) {
+            allPreviousCompleted = false;
+          }
+
+          return {
+            ...content,
+            locked,
+          };
+        });
+
+        return {
+          ...module,
+          contents: processedContents,
+        };
+      });
+
       result.push({
         ...course,
+        modules: processedModules,
         progressPercent,
       });
     }
   }
-
-  console.log('📦 Final in-progress courses:', result.length);
 
   return result;
 }

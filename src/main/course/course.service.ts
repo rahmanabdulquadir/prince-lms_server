@@ -216,7 +216,6 @@ async getInProgressCourses(userId: string) {
 
     // Only include if course is partially completed
     if (progressPercent > 0 && progressPercent < 100) {
-      // Map progress by content ID
       const progressByContent = new Map(
         completedProgress.map((p) => [p.contentId, p])
       );
@@ -228,13 +227,19 @@ async getInProgressCourses(userId: string) {
           let locked: boolean;
 
           if (moduleIndex === 0 && contentIndex === 0) {
-            // First module's first content unlocked
+            // First content of the first module is always unlocked
             locked = false;
           } else if (contentIndex === 0) {
-            // First content of other modules locked unless previous module fully completed
-            locked = true;
+            // First content of later modules — check if previous module is fully completed
+            const prevModule = course.modules[moduleIndex - 1];
+            const prevModuleCompleted = prevModule.contents.every(
+              (prevContent) =>
+                progressByContent.has(prevContent.id) &&
+                progressByContent.get(prevContent.id)!.isCompleted
+            );
+            locked = !prevModuleCompleted;
           } else {
-            // Other contents follow normal unlocking rule
+            // Other contents in the same module depend on earlier content
             locked = !allPreviousCompleted;
           }
 

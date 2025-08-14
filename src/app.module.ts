@@ -25,7 +25,6 @@ import { SubscriptionController } from './main/subscription/subscription.control
 import { SubscriptionModule } from './main/subscription/subscription.module';
 import { UserModule } from './main/user/user.module';
 import { ConfigModule } from '@nestjs/config';
-import { NotificationModule } from './main/notification/notification.module';
 import { TwilioService } from './main/twilio/twilio.service';
 import { TwilioModule } from './main/twilio/twilio.module';
 import { VideoModule } from './main/video/video.module';

@@ -77,15 +77,6 @@ export class ContentService {
         select: { id: true },
       });
 
-      const notifications = paidUsers.map((user) =>
-        this.notificationService.create({
-          title: 'New Content Added',
-          message: `New content "${content.title}" has been added.`,
-          contentId: content.id,
-        }),
-      );
-
-      await Promise.all(notifications);
 
       return content;
     } catch (error) {

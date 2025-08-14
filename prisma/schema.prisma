@@ -225,10 +225,10 @@ model DeviceToken {
 model Notification {
   id          String   @id @default(uuid())
   title       String
-  body        String
+  body        String?
   imageUrl    String?
   deepLink    String?  // e.g., app://course/{id} or app://video/{id}
-  contentType String   // 'video' | 'course' | 'system'
+  contentType String?   // 'video' | 'course' | 'system'
   contentId   String?  // optional ref to the content
   sentToTopic String?  // e.g., 'all-users'
 

@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 import * as admin from 'firebase-admin';
@@ -20,7 +20,7 @@ export class NotificationService {
 
   constructor(
     private prisma: PrismaService,
-    private firebaseApp: admin.app.App,
+    @Inject('FIREBASE_ADMIN') private firebaseApp: admin.app.App,  // 👈 FIXED
   ) {}
 
   // 1) Token registration (optionally associate with user)

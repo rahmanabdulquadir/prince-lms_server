@@ -3,8 +3,10 @@ import { NotificationService } from './notification.service';
 import { PrismaService } from '../prisma/prisma.service';
 import * as admin from 'firebase-admin';
 import { ConfigService } from '@nestjs/config';
+import { NotificationController } from './notification.controller';
 
 @Module({
+  controllers: [NotificationController],
   providers: [
     PrismaService,
     NotificationService,

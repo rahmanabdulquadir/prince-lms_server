@@ -58,7 +58,7 @@ export class UpdateService {
 
   async updateUpcomingContent(
     id: string,
-    dto: CreateUpcomingContentDto,
+    dto: Partial<CreateUpcomingContentDto>, // Partial to allow optional fields
     file?: Express.Multer.File,
   ) {
     let bannerImageUrl: string | undefined;
@@ -67,19 +67,18 @@ export class UpdateService {
       bannerImageUrl = await this.uploadBannerToCloudinary(file);
     }
   
+    // Prepare update data dynamically
+    const updateData: any = { ...dto };
+    if (bannerImageUrl) updateData.bannerImage = bannerImageUrl;
+  
     const updated = await this.prisma.upcomingContent.update({
       where: { id },
-      data: {
-        title: dto.title,
-        description: dto.description,
-        bannerImage: bannerImageUrl ?? dto.bannerImage,
-        releaseDate: dto.releaseDate,
-        contentType: dto.contentType,
-      },
+      data: updateData,
     });
   
     return updated;
   }
+  
   
   async deleteUpcomingContent(id: string) {
     return this.prisma.upcomingContent.delete({

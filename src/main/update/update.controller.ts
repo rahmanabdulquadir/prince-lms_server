@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  Patch,
   Post,
   Put,
   UploadedFile,
@@ -14,7 +15,7 @@ import { UpdateService } from './update.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CreateUpcomingContentDto } from './dto/create-upcoming-content.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ApiBearerAuth, ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AdminGuard } from 'src/common/guard/AdminGuard';
 
 @ApiTags('Updates')
@@ -43,19 +44,20 @@ export class UpdateController {
     return this.updateService.getUpcomingContent();
   }
 
-  @Put('upcoming-updates/:id')
+  @Patch('upcoming-updates/:id')
+  @ApiOperation({ summary: 'Patch (partial) update for upcoming content' })
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, AdminGuard)
   @UseInterceptors(FileInterceptor('bannerImage'))
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     type: CreateUpcomingContentDto,
-    description: 'Update upcoming video/course content with banner image',
+    description: 'Update upcoming video/course content with optional banner image',
   })
   updateUpcoming(
     @Param('id') id: string,
     @UploadedFile() file: Express.Multer.File,
-    @Body() dto: CreateUpcomingContentDto,
+    @Body() dto: Partial<CreateUpcomingContentDto>, // Partial for patch
   ) {
     return this.updateService.updateUpcomingContent(id, dto, file);
   }

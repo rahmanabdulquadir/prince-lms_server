@@ -1,8 +1,24 @@
-import { Body, Controller, Delete, Get, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Query,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { NotificationService } from './notification.service';
 import { RegisterTokenDto } from './dto/register-token.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { ApiBearerAuth, ApiBody, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiOperation,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
 
 @ApiTags('Notifications')
 @Controller('notifications')
@@ -15,7 +31,12 @@ export class NotificationController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   async register(@Body() dto: RegisterTokenDto, @Req() req: any) {
-    return this.service.registerToken(dto.token, dto.platform, req.user?.id, dto.locale);
+    return this.service.registerToken(
+      dto.token,
+      dto.platform,
+      req.user?.id,
+      dto.locale,
+    );
   }
 
   @Delete('register/:token')
@@ -41,7 +62,11 @@ export class NotificationController {
   @UseGuards(JwtAuthGuard)
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 20 })
-  async myFeed(@Req() req: any, @Query('page') page = '1', @Query('limit') limit = '20') {
+  async myFeed(
+    @Req() req: any,
+    @Query('page') page = '1',
+    @Query('limit') limit = '20',
+  ) {
     return this.service.listMyNotifications(req.user.id, +page, +limit);
   }
 

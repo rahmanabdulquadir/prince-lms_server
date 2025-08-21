@@ -1,6 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-
 import * as admin from 'firebase-admin';
 
 interface BroadcastPayload {
@@ -10,20 +9,19 @@ interface BroadcastPayload {
   deepLink?: string;
   contentType: 'video' | 'course' | 'system';
   contentId?: string;
-  topic?: string; // default to env topic
+  topic?: string; // not used now, we send to all tokens
 }
 
 @Injectable()
 export class NotificationService {
   private readonly logger = new Logger(NotificationService.name);
-  private readonly defaultTopic = process.env.FCM_DEFAULT_TOPIC || 'all-users';
 
   constructor(
     private prisma: PrismaService,
-    @Inject('FIREBASE_ADMIN') private firebaseApp: admin.app.App,  // 👈 FIXED
+    @Inject('FIREBASE_ADMIN') private firebaseApp: admin.app.App,
   ) {}
 
-  // 1) Token registration (optionally associate with user)
+  // 1) Token registration
   async registerToken(token: string, platform: string, userId?: string, locale?: string) {
     await this.prisma.deviceToken.upsert({
       where: { token },
@@ -38,11 +36,19 @@ export class NotificationService {
     return { message: 'Token unregistered' };
   }
 
-  // 2) Topic broadcast (best for “notify all users”)
-  async broadcastToTopic(payload: BroadcastPayload) {
-    const topic = payload.topic || this.defaultTopic;
+  // 2) Broadcast to ALL device tokens (fix applied)
+  async broadcastToAll(payload: BroadcastPayload) {
+    // Fetch all tokens from DB
+    const tokens = await this.prisma.deviceToken.findMany({ select: { token: true } });
 
-    // Save in Notification table (for in-app feed)
+    if (!tokens.length) {
+      this.logger.warn('No device tokens found in DB');
+      return { message: 'No tokens available' };
+    }
+
+    const tokenList = tokens.map((t) => t.token);
+
+    // Save notification in DB (in-app feed)
     const notification = await this.prisma.notification.create({
       data: {
         title: payload.title,
@@ -51,18 +57,18 @@ export class NotificationService {
         deepLink: payload.deepLink,
         contentType: payload.contentType,
         contentId: payload.contentId,
-        sentToTopic: topic,
       },
     });
 
-    // Send push
     const messaging = this.firebaseApp.messaging();
-    await messaging.send({
-      topic,
+
+    // Send multicast
+    const resp = await messaging.sendEachForMulticast({
+      tokens: tokenList,
       notification: {
         title: payload.title,
         body: payload.body,
-        image: payload.imageUrl, // ✅ supported in latest SDK
+        image: payload.imageUrl,
       } as any,
       data: {
         deepLink: payload.deepLink ?? '',
@@ -70,28 +76,34 @@ export class NotificationService {
         contentId: payload.contentId ?? '',
       },
       android: { priority: 'high' },
-      apns: {
-        payload: { aps: { sound: 'default', contentAvailable: true } },
-      },
+      apns: { payload: { aps: { sound: 'default', contentAvailable: true } } },
     });
 
-    this.logger.log(`Broadcast sent to topic "${topic}"`);
-    return { message: 'Broadcast sent', id: notification.id };
+    this.logger.log(`Broadcast: success=${resp.successCount}, fail=${resp.failureCount}`);
+
+    // ✅ Remove invalid tokens from DB
+    if (resp.responses) {
+      const invalidTokens: string[] = [];
+      resp.responses.forEach((r, i) => {
+        if (!r.success) {
+          const error = (r.error as any)?.errorInfo?.code;
+          if (error === 'messaging/invalid-argument' || error === 'messaging/registration-token-not-registered') {
+            invalidTokens.push(tokenList[i]);
+          }
+        }
+      });
+
+      if (invalidTokens.length) {
+        await this.prisma.deviceToken.deleteMany({ where: { token: { in: invalidTokens } } });
+        this.logger.warn(`Removed ${invalidTokens.length} invalid tokens`);
+      }
+    }
+
+    return { message: 'Broadcast sent', id: notification.id, ...resp };
   }
 
-
-
-
-
-
-
-
-
-
-
-  // 3) Optional: send to specific user(s)
+  // 3) Send to specific users
   async sendToUserIds(userIds: string[], payload: Omit<BroadcastPayload, 'topic'>) {
-    // Fetch tokens
     const tokens = await this.prisma.deviceToken.findMany({
       where: { userId: { in: userIds } },
       select: { token: true, userId: true },
@@ -99,7 +111,6 @@ export class NotificationService {
 
     if (!tokens.length) return { message: 'No tokens to send' };
 
-    // Create notification & recipients (in-app feed)
     const notification = await this.prisma.notification.create({
       data: {
         title: payload.title,
@@ -114,8 +125,8 @@ export class NotificationService {
       },
     });
 
+    const tokenList = tokens.map((t) => t.token);
     const messaging = this.firebaseApp.messaging();
-    const tokenList = tokens.map(t => t.token);
 
     const batchResp = await messaging.sendEachForMulticast({
       tokens: tokenList,
@@ -133,42 +144,31 @@ export class NotificationService {
     return { notificationId: notification.id, ...batchResp };
   }
 
-  // 4) In-app feed (list + mark as read)
+  // 4) In-app feed
   async listMyNotifications(userId: string, page = 1, limit = 20) {
     const skip = (page - 1) * limit;
 
-    // Include topic notifications for everyone + user-specific ones
-    // Strategy: show user-specific first; to show topic ones to everyone, you can either
-    // replicate NotificationRecipient for all, or (lighter) fetch the topic notifications
-    // and merge in the response. Here we fetch both.
-    const [userSpecific, topicBased] = await Promise.all([
+    const [userSpecific, global] = await Promise.all([
       this.prisma.notificationRecipient.findMany({
         where: { userId },
         include: { notification: true },
         orderBy: { notification: { createdAt: 'desc' } },
-        skip, take: limit,
+        skip,
+        take: limit,
       }),
       this.prisma.notification.findMany({
-        where: { sentToTopic: this.defaultTopic },
         orderBy: { createdAt: 'desc' },
-        skip, take: limit,
+        skip,
+        take: limit,
       }),
     ]);
 
-    // Merge and de-dupe by id, mark read state from recipients
     const merged = new Map<string, any>();
-
     for (const r of userSpecific) {
-      merged.set(r.notificationId, {
-        ...r.notification,
-        readAt: r.readAt ?? null,
-      });
+      merged.set(r.notificationId, { ...r.notification, readAt: r.readAt ?? null });
     }
-
-    for (const n of topicBased) {
-      if (!merged.has(n.id)) {
-        merged.set(n.id, { ...n, readAt: null });
-      }
+    for (const n of global) {
+      if (!merged.has(n.id)) merged.set(n.id, { ...n, readAt: null });
     }
 
     return Array.from(merged.values()).sort(
@@ -177,7 +177,6 @@ export class NotificationService {
   }
 
   async markRead(userId: string, notificationId: string) {
-    // Create recipient if not exists (topic case), then mark read
     await this.prisma.notificationRecipient.upsert({
       where: { userId_notificationId: { userId, notificationId } },
       update: { readAt: new Date() },

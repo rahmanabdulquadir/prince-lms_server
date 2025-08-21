@@ -6,15 +6,19 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateVideoDto } from './dto/create-video.dto';
-import { Express } from 'express';
 import { v2 as cloudinary } from 'cloudinary';
 import '../../config/cloudinary.config';
 import * as streamifier from 'streamifier';
 import { UpdateVideoDto } from './dto/update-video.dto';
+import { NotificationService } from '../notification/notification.service';
+
 
 @Injectable()
 export class VideoService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notificationService: NotificationService, // 👈 inject
+  ) {}
 
   private async uploadFileToCloudinary(
     file: Express.Multer.File,
@@ -37,6 +41,7 @@ export class VideoService {
     });
   }
 
+  // ✅ Create video and broadcast notification
   async create(
     dto: CreateVideoDto,
     videoFile: Express.Multer.File,
@@ -55,10 +60,10 @@ export class VideoService {
 
       const isFeatured =
         typeof dto.isFeatured === 'string'
-          ? dto.isFeatured.toLowerCase() === 'true'
+          ? (dto.isFeatured as string).toLowerCase() === 'true'
           : !!dto.isFeatured;
 
-      const duration = uploadedVideo?.duration || null; // 👈 Extract duration in seconds
+      const duration = uploadedVideo?.duration || null;
 
       const video = await this.prisma.video.create({
         data: {
@@ -72,6 +77,15 @@ export class VideoService {
         },
       });
 
+      //  Send push notification to all users
+      const res=await this.notificationService.broadcastToAll({
+        title: '🎬 New Video Released!',
+        body: dto.title,
+        imageUrl: uploadedThumbnail.secure_url,
+        deepLink: `/videos/${video.id}`, 
+        contentType: 'video',
+        contentId: video.id,
+      });
       return video;
     } catch (error) {
       console.error('Cloudinary upload failed:', error);
@@ -81,14 +95,12 @@ export class VideoService {
     }
   }
 
-
   async getUpcomingContent() {
     const updates = await this.prisma.upcomingContent.findMany({
       orderBy: {
         releaseDate: 'asc',
       },
     });
-  
     return updates;
   }
 
@@ -167,6 +179,7 @@ export class VideoService {
           ? dto.isFeatured.toLowerCase() === 'true'
           : !!dto.isFeatured;
     }
+
     const updatedVideo = await this.prisma.video.update({
       where: { id },
       data: {
@@ -221,6 +234,7 @@ export class VideoService {
       pageCount: Math.ceil(total / limit),
     };
   }
+
   async findRecentVideos(userId: string, page = 1, limit = 5) {
     const skip = (page - 1) * limit;
 
@@ -235,7 +249,7 @@ export class VideoService {
           },
         },
       }),
-      this.prisma.video.count(), // total number of videos
+      this.prisma.video.count(),
       this.prisma.like.findMany({
         where: { userId },
         select: { videoId: true },
@@ -271,7 +285,6 @@ export class VideoService {
 
   async delete(videoId: string) {
     try {
-      // Get the video from the database
       const video = await this.prisma.video.findUnique({
         where: { id: videoId },
       });
@@ -280,20 +293,18 @@ export class VideoService {
         throw new Error('Video not found');
       }
 
-      // Extract public_id from the Cloudinary URL (assuming you saved full URL)
       const extractPublicId = (url: string) => {
         const parts = url.split('/');
         const publicIdWithExtension = parts[parts.length - 1];
         const publicId = publicIdWithExtension.split('.')[0];
         return (
           parts.slice(parts.length - 2, parts.length - 1)[0] + '/' + publicId
-        ); // e.g., folder/filename
+        );
       };
 
       const videoPublicId = extractPublicId(video.videoUrl);
       const thumbnailPublicId = extractPublicId(video.thumbnailUrl);
 
-      // Delete from Cloudinary
       await Promise.all([
         cloudinary.uploader.destroy(videoPublicId, { resource_type: 'video' }),
         cloudinary.uploader.destroy(thumbnailPublicId, {
@@ -301,18 +312,12 @@ export class VideoService {
         }),
       ]);
 
-      // Step 1: Delete related likes to prevent foreign key constraint error
       await this.prisma.like.deleteMany({
         where: {
           videoId,
         },
       });
 
-      // Step 2: (Optional) Delete other related data like comments or bookmarks here
-      // await this.prisma.comment.deleteMany({ where: { videoId } });
-      // await this.prisma.bookmark.deleteMany({ where: { videoId } });
-
-      // Step 3: Delete the video from DB
       await this.prisma.video.delete({
         where: { id: videoId },
       });
@@ -327,7 +332,6 @@ export class VideoService {
   }
 
   async likeVideo(videoId: string, userId: string) {
-    // Check if the user already liked the video
     const existingLike = await this.prisma.like.findUnique({
       where: {
         userId_videoId: {
@@ -341,7 +345,6 @@ export class VideoService {
       throw new BadRequestException('You already liked this video');
     }
 
-    // Create the like
     await this.prisma.like.create({
       data: {
         userId,
@@ -349,7 +352,6 @@ export class VideoService {
       },
     });
 
-    // Optionally return updated count
     const likeCount = await this.prisma.like.count({
       where: { videoId },
     });
@@ -361,7 +363,6 @@ export class VideoService {
   }
 
   async unlikeVideo(videoId: string, userId: string) {
-    // Check if like exists
     const existingLike = await this.prisma.like.findUnique({
       where: {
         userId_videoId: {
@@ -375,7 +376,6 @@ export class VideoService {
       throw new NotFoundException('Like does not exist');
     }
 
-    // Delete the like
     await this.prisma.like.delete({
       where: {
         userId_videoId: {
@@ -394,6 +394,7 @@ export class VideoService {
       likeCount,
     };
   }
+
   async getLikeCount(videoId: string) {
     const count = await this.prisma.like.count({
       where: { videoId },
@@ -456,26 +457,26 @@ export class VideoService {
 
   async getLikedVideos(userId: string, page = 1, limit = 10) {
     const skip = (page - 1) * limit;
-  
+
     const likedVideos = await this.prisma.like.findMany({
       where: { userId },
       include: {
-        video: true, // this needs to be defined in your schema
+        video: true,
       },
       skip,
       take: limit,
       orderBy: {
-        createdAt: 'desc', // make sure this exists in model
+        createdAt: 'desc',
       },
     });
-  
+
     const result = likedVideos.map((like) => ({
       ...like.video,
-      likedAt: like.createdAt, // or like.likedAt depending on your model
+      likedAt: like.createdAt,
     }));
-  
+
     const totalCount = await this.prisma.like.count({ where: { userId } });
-  
+
     return {
       data: result,
       meta: {
@@ -486,6 +487,4 @@ export class VideoService {
       },
     };
   }
-  
-  
 }

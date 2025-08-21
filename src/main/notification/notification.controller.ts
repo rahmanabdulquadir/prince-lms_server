@@ -78,7 +78,7 @@ export class NotificationController {
   @UseGuards(JwtAuthGuard) // Later you can add AdminGuard here
   @ApiBearerAuth()
   async testBroadcast() {
-    return this.service.broadcastToTopic({
+    return this.service.broadcastToAll({
       title: 'Test',
       body: 'This is a test broadcast',
       contentType: 'system',
